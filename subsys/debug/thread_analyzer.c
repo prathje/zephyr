@@ -106,7 +106,7 @@ static void thread_analyze_cb(const struct k_thread *cthread, void *user_data)
 	}
 	if (ret == 0) {
 		info.utilization = (rt_stats_thread.execution_cycles * 100U) /
-			rt_stats_all.execution_cycles;
+			MAX(1, rt_stats_all.execution_cycles);
 	}
 #endif
 	cb(&info);
