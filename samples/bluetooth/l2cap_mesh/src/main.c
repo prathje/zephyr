@@ -318,6 +318,31 @@ static void device_found_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 		return;
 	}
 
+
+	bool mesh_device = false;
+
+	if(ad->len == 7) {
+		/*uint8_t _flags_len = */ net_buf_simple_pull_u8(ad);
+		/*uint8_t _flags_type = */ net_buf_simple_pull_u8(ad);
+		/*uint8_t _flags = */ net_buf_simple_pull_u8(ad);
+		uint8_t entry_len = net_buf_simple_pull_u8(ad);
+		uint8_t type = net_buf_simple_pull_u8(ad);
+		if (type == BT_DATA_SVC_DATA16) {
+			uint8_t uuid_low = net_buf_simple_pull_u8(ad);
+			uint8_t uuid_high = net_buf_simple_pull_u8(ad);
+
+			if (((uuid_high<<8)|uuid_low) == L2CAP_MESH_UUID) {
+				mesh_device = true;
+			}
+		}
+	}
+
+	if (!mesh_device) {
+		return;
+	}
+
+
+
 	bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
 	//printk("Device found: %s (RSSI %d)\n", addr_str, rssi);
 
@@ -358,6 +383,9 @@ static void device_found_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 	}
 
 	conn = NULL;
+
+	printk("Trying to connect to %s\n", addr_str)
+		;
 	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN,
 				BT_LE_CONN_PARAM_DEFAULT, &conn);
 	if (err) {
@@ -540,6 +568,7 @@ void main(void)
 
 			if (link->channel_down_ts && link->channel_down_ts + TIMEOUT_WARNING_MS < now) {
 				printk("Timeout warning: channel_down timeout!\n");
+				bt_conn_disconnect(link->conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
 			}
 
 			if (link->disconnect_ts && link->disconnect_ts + TIMEOUT_WARNING_MS < now) {
