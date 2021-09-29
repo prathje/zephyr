@@ -568,7 +568,7 @@ bool bt_id_adv_random_addr_check(const struct bt_le_adv_param *param)
 		 */
 
 		if (!(param->options & BT_LE_ADV_OPT_CONNECTABLE) &&
-		     (param->options & BT_LE_ADV_OPT_USE_IDENTITY)) {
+		     !(param->options & BT_LE_ADV_OPT_USE_IDENTITY)) {
 			/* Attempt to set non-connectable NRPA */
 			return false;
 		} else if (bt_dev.id_addr[param->id].type ==
