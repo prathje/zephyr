@@ -27,6 +27,7 @@ LOG_MODULE_REGISTER(dw1000, LOG_LEVEL_INF);
 
 #include <net/ieee802154_radio.h>
 #include "ieee802154_dw1000_regs.h"
+#include <drivers/ieee802154/dw1000.h>
 
 #define DT_DRV_COMPAT decawave_dw1000
 
@@ -114,6 +115,11 @@ struct dwt_context {
 	bool cca_busy;
 	uint16_t sleep_mode;
 	uint8_t mac_addr[8];
+
+	bool delayed_tx_short_ts_set;
+	uint32_t delayed_tx_short_ts;
+
+    uint64_t rx_ts;
 };
 
 static const struct dwt_hi_cfg dw1000_0_config = {
@@ -456,7 +462,10 @@ static inline void dwt_irq_handle_rx(const struct device *dev, uint32_t sys_stat
 		uint64_t ts_fsec;
 
 		memcpy(ts_buf, rx_inf_reg.rx_time, DWT_RX_TIME_RX_STAMP_LEN);
-		ts_fsec = sys_get_le64(ts_buf) * DWT_TS_TIME_UNITS_FS;
+	    uint64_t rx_ts = sys_get_le64(ts_buf);
+	    ctx->rx_ts = rx_ts;
+
+		ts_fsec = rx_ts * DWT_TS_TIME_UNITS_FS;
 		timestamp.second = (ts_fsec / 1000000) / NSEC_PER_SEC;
 		timestamp.nanosecond = (ts_fsec / 1000000) % NSEC_PER_SEC;
 		net_pkt_set_timestamp(pkt, &timestamp);
@@ -568,7 +577,30 @@ static void dwt_irq_handle_error(const struct device *dev, uint32_t sys_stat)
 	/* Receiver reset necessary, see 4.1.6 RX Message timestamp */
 	dwt_reset_rfrx(dev);
 
-	LOG_INF("RX error event");
+	if(sys_stat & DWT_SYS_STATUS_RXPHE) {
+        LOG_INF("RX error DWT_SYS_STATUS_RXPHE");
+	}
+
+	if(sys_stat & DWT_SYS_STATUS_RXFCE) {
+        LOG_INF("RX error DWT_SYS_STATUS_RXFCE");
+    }
+
+    if(sys_stat & DWT_SYS_STATUS_RXRFSL) {
+        LOG_INF("RX error DWT_SYS_STATUS_RXRFSL");
+    }
+
+    if(sys_stat & DWT_SYS_STATUS_RXOVRR) {
+        LOG_INF("RX error DWT_SYS_STATUS_RXOVRR");
+    }
+
+    if(sys_stat & DWT_SYS_STATUS_RXSFDTO) {
+        LOG_INF("RX error DWT_SYS_STATUS_RXSFDTO");
+    }
+
+    if(sys_stat & DWT_SYS_STATUS_AFFREJ) {
+        LOG_INF("RX error DWT_SYS_STATUS_AFFREJ");
+    }
+
 	if (atomic_test_bit(&ctx->state, DWT_STATE_CCA)) {
 		k_sem_give(&ctx->phy_sem);
 		ctx->cca_busy = true;
@@ -774,6 +806,7 @@ static int dwt_set_power(const struct device *dev, int16_t dbm)
 	return 0;
 }
 
+
 static int dwt_tx(const struct device *dev, enum ieee802154_tx_mode tx_mode,
 		  struct net_pkt *pkt, struct net_buf *frag)
 {
@@ -801,18 +834,24 @@ static int dwt_tx(const struct device *dev, enum ieee802154_tx_mode tx_mode,
 		 * tx_time is the high 32-bit of the 40-bit system
 		 * time value at which to send the message.
 		 */
-		txts = net_pkt_timestamp(pkt);
-		tmp_fs = txts->second * NSEC_PER_SEC + txts->nanosecond;
-		tmp_fs *= 1000U * 1000U;
+		if (ctx->delayed_tx_short_ts_set) {
+            tx_time = ctx->delayed_tx_short_ts;
+            ctx->delayed_tx_short_ts_set = 0; // disable the flag again
+		} else {
+            txts = net_pkt_timestamp(pkt);
+            tmp_fs = txts->second * NSEC_PER_SEC + txts->nanosecond;
+            tmp_fs *= 1000U * 1000U;
+            tx_time = (tmp_fs / DWT_TS_TIME_UNITS_FS) >> 8;
+		}
 
-		tx_time = (tmp_fs / DWT_TS_TIME_UNITS_FS) >> 8;
 		sys_ctrl |= DWT_SYS_CTRL_TXDLYS;
 		/* DX_TIME is 40-bit register */
 		dwt_reg_write_u32(dev, DWT_DX_TIME_ID, 1, tx_time);
 
-		LOG_DBG("ntx hi32 %x", tx_time);
-		LOG_DBG("sys hi32 %x",
-			dwt_reg_read_u32(dev, DWT_SYS_TIME_ID, 1));
+        LOG_DBG("ntx hi32 %x", tx_time);
+        LOG_DBG("sys hi32 %x",
+        dwt_reg_read_u32(dev, DWT_SYS_TIME_ID, 1));
+
 		break;
 	default:
 		LOG_ERR("TX mode %d not supported", tx_mode);
@@ -849,7 +888,10 @@ static int dwt_tx(const struct device *dev, enum ieee802154_tx_mode tx_mode,
 		uint32_t sys_stat = dwt_reg_read_u32(dev, DWT_SYS_STATUS_ID, 0);
 
 		if (sys_stat & DWT_SYS_STATUS_HPDWARN) {
-			LOG_WRN("Half Period Delay Warning");
+            //LOG_WRN("Half Period Delay Warning Current: %llu", dwt_system_ts(dev));
+            uint64_t planned_us = dwt_short_ts_to_fs(tx_time) /  1000000000U;
+            uint64_t current_us = dwt_ts_to_fs(dwt_system_ts(dev)) /  1000000000U;
+            LOG_WRN("Half Period Delay Warning (planned: %llu, current: %llu)",  planned_us, current_us);
 		}
 	}
 
@@ -866,9 +908,8 @@ static int dwt_tx(const struct device *dev, enum ieee802154_tx_mode tx_mode,
 				  DWT_TX_TIME_TX_STAMP_OFFSET,
 				  DWT_TX_TIME_TX_STAMP_LEN,
 				  ts_buf);
-		LOG_DBG("ts  hi32 %x", (uint32_t)(sys_get_le64(ts_buf) >> 8));
-		LOG_DBG("sys hi32 %x",
-			dwt_reg_read_u32(dev, DWT_SYS_TIME_ID, 1));
+        LOG_DBG("ts  hi32 %x", (uint32_t)(sys_get_le64(ts_buf) >> 8));
+        LOG_DBG("sys hi32 %x", dwt_reg_read_u32(dev, DWT_SYS_TIME_ID, 1));
 		k_sem_give(&ctx->dev_lock);
 
 		tmp_fs = sys_get_le64(ts_buf) * DWT_TS_TIME_UNITS_FS;
@@ -894,7 +935,7 @@ error:
 	return -EIO;
 }
 
-static void dwt_set_frame_filter(const struct device *dev,
+void dwt_set_frame_filter(const struct device *dev,
 				 bool ff_enable, uint8_t ff_type)
 {
 	uint32_t sys_cfg_ff = ff_enable ? DWT_SYS_CFG_FFE : 0;
@@ -1116,11 +1157,91 @@ static uint32_t dwt_otpmem_read(const struct device *dev, uint16_t otp_addr)
 	return dwt_reg_read_u32(dev, DWT_OTP_IF_ID, DWT_OTP_RDAT);
 }
 
+void dwt_set_antenna_delay_rx(const struct device *dev, uint16_t rx_delay_ts) {
+    dwt_reg_write_u16(dev, DWT_LDE_IF_ID, DWT_LDE_RXANTD_OFFSET, rx_delay_ts);
+}
+void dwt_set_antenna_delay_tx(const struct device *dev, uint16_t tx_delay_ts) {
+    dwt_reg_write_u16(dev, DWT_TX_ANTD_ID, DWT_TX_ANTD_OFFSET, tx_delay_ts);
+}
+uint16_t dwt_antenna_delay_rx(const struct device *dev) {
+    return dwt_reg_read_u16(dev, DWT_LDE_IF_ID, DWT_LDE_RXANTD_OFFSET);
+}
+inline uint16_t dwt_antenna_delay_tx(const struct device *dev) {
+    return dwt_reg_read_u16(dev, DWT_TX_ANTD_ID, DWT_TX_ANTD_OFFSET);
+}
+
+inline void dwt_set_delayed_tx_short_ts(const struct device *dev, uint32_t short_ts) {
+    struct dwt_context *ctx = dev->data;
+    ctx->delayed_tx_short_ts = short_ts;
+    ctx->delayed_tx_short_ts_set = 1;
+}
+
+inline uint64_t dwt_system_ts(const struct device *dev) {
+    uint8_t ts_buf[sizeof(uint64_t)] = {0};
+
+    // TODO: Should we lock?!
+    //k_sem_take(&ctx->dev_lock, K_FOREVER);
+    dwt_register_read(dev, DWT_SYS_TIME_ID, DWT_SYS_TIME_OFFSET, DWT_SYS_TIME_LEN, ts_buf);
+    //k_sem_give(&ctx->dev_lock);
+    return sys_get_le64(ts_buf);
+}
+
+inline uint32_t dwt_system_short_ts(const struct device *dev) {
+    uint64_t ts = dwt_system_ts(dev);
+    return (uint32_t)(ts >> 8);
+}
+
+uint64_t dwt_ts_to_fs(uint64_t ts) {
+    return ts * DWT_TS_TIME_UNITS_FS;
+}
+
+uint64_t dwt_fs_to_ts(uint64_t fs) {
+    return fs / DWT_TS_TIME_UNITS_FS;
+}
+
+uint64_t dwt_short_ts_to_fs(uint32_t ts) {
+    uint64_t tmp_ts = (uint64_t)ts;
+    return (tmp_ts << 8) * DWT_TS_TIME_UNITS_FS;
+}
+
+uint32_t dwt_fs_to_short_ts(uint64_t fs) {
+    return (fs / DWT_TS_TIME_UNITS_FS) >> 8;
+}
+
+inline uint64_t dwt_estimate_actual_tx_ts(uint32_t planned_short_ts, uint16_t tx_antenna_delay) {
+    return (((uint64_t)(planned_short_ts & 0xFFFFFFFEUL)) << 8) + tx_antenna_delay;
+}
+
+uint64_t dwt_plan_delayed_tx(const struct device *dev, uint64_t uus_delay) {
+    // query the antenna delay before
+    uint16_t antenna_delay = dwt_antenna_delay_tx(dev);
+    uint64_t cur_ts = dwt_system_ts(dev);
+    /* UWB microsecond (uus) to device time unit (dtu, around 15.65 ps) conversion factor.
+    * 1 uus = 512 / 499.2 µs and 1 µs = 499.2 * 128 dtu. */
+    uint32_t planned_tx_short_ts = (cur_ts + (uus_delay * 65536)) >> 8;
+    //LOG_WRN("current %u planned %u", (uint32_t)(cur_ts >> 8), planned_tx_short_ts);
+    dwt_set_delayed_tx_short_ts(dev, planned_tx_short_ts);
+
+    uint64_t estimated_ts = dwt_estimate_actual_tx_ts(planned_tx_short_ts, antenna_delay);
+    //LOG_WRN("Current: %llu, Plan: %llu, Est: %llu", cur_ts, (uint64_t)(planned_tx_short_ts) << 8, estimated_ts);
+    //LOG_WRN("Current: %llu, Plan: %llu, Est: %llu", dwt_ts_to_fs(cur_ts) /  1000000000U, dwt_ts_to_fs((uint64_t)(planned_tx_short_ts) << 8) /  1000000000U, dwt_ts_to_fs(estimated_ts) /  1000000000U);
+
+    return estimated_ts;
+}
+
+uint64_t dwt_rx_ts(const struct device *dev) {
+    struct dwt_context *ctx = dev->data;
+    return ctx->rx_ts;
+}
+
 static int dwt_initialise_dev(const struct device *dev)
 {
 	struct dwt_context *ctx = dev->data;
 	uint32_t otp_val = 0;
 	uint8_t xtal_trim;
+
+	ctx->delayed_tx_short_ts_set = 0;
+	ctx->delayed_tx_short_ts = 0;
 
 	dwt_set_sysclks_xti(dev, false);
 	ctx->sleep_mode = 0;
@@ -1197,11 +1318,9 @@ static int dwt_initialise_dev(const struct device *dev)
 
 	dwt_set_spi_fast(dev);
 
-	/* Setup antenna delay values */
-	dwt_reg_write_u16(dev, DWT_LDE_IF_ID, DWT_LDE_RXANTD_OFFSET,
-			  DW1000_RX_ANT_DLY);
-	dwt_reg_write_u16(dev, DWT_TX_ANTD_ID, DWT_TX_ANTD_OFFSET,
-			  DW1000_TX_ANT_DLY);
+	/* Setup default antenna delay values */
+    dwt_set_antenna_delay_rx(dev, DW1000_RX_ANT_DLY);
+    dwt_set_antenna_delay_tx(dev, DW1000_TX_ANT_DLY);
 
 	/* Clear AON_CFG1 register */
 	dwt_reg_write_u8(dev, DWT_AON_ID, DWT_AON_CFG1_OFFSET, 0);
@@ -1553,7 +1672,6 @@ static int dw1000_init(const struct device *dev)
 	/* Allow Beacon, Data, Acknowledgement, MAC command */
 	dwt_set_frame_filter(dev, true, DWT_SYS_CFG_FFAB | DWT_SYS_CFG_FFAD |
 			     DWT_SYS_CFG_FFAA | DWT_SYS_CFG_FFAM);
-
 	/*
 	 * Enable system events:
 	 *  - transmit frame sent,
@@ -1603,6 +1721,11 @@ static inline uint8_t *get_mac(const struct device *dev)
 	dw1000->mac_addr[0] = (dw1000->mac_addr[0] & ~0x01) | 0x02;
 
 	return dw1000->mac_addr;
+}
+
+uint8_t *dwt_get_mac(const struct device *dev)
+{
+    return get_mac(dev);
 }
 
 static void dwt_iface_api_init(struct net_if *iface)
