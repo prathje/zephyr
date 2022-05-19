@@ -480,11 +480,9 @@ static inline void dwt_irq_handle_rx(const struct device *dev, uint32_t sys_stat
 	}
 
 	if (rx_pacc != 0) {
-#if defined(CONFIG_NEWLIB_LIBC)
 		/* From 4.7.2 Estimating the receive signal power */
 		rx_level = 10.0 * log10f(cir_pwr * BIT(17) /
 					 (rx_pacc * rx_pacc)) - a_const;
-#endif
 	}
 
 	net_pkt_set_ieee802154_rssi(pkt, rx_level);
@@ -1233,6 +1231,50 @@ uint64_t dwt_rx_ts(const struct device *dev) {
     struct dwt_context *ctx = dev->data;
     return ctx->rx_ts;
 }
+
+#define B20_SIGN_EXTEND_TEST (0x00100000UL)
+#define B20_SIGN_EXTEND_MASK (0xFFF00000UL)
+
+static int dwt_readcarrierintegrator(const struct device *dev)
+{
+    uint32_t  regval = 0 ;
+    uint8_t buf[DWT_DRX_CARRIER_INT_LEN];
+    /* Read 3 bytes into buffer (21-bit quantity) */
+    dwt_spi_transfer(dev, DWT_DRX_CONF_ID, DWT_DRX_CARRIER_INT_OFFSET, sizeof(buf), buf, false);
+
+    for (int j = 2 ; j >= 0 ; j --)  // arrange the three bytes into an unsigned integer value
+    {
+        regval = (regval << 8) + buf[j] ;
+    }
+
+    if (regval & B20_SIGN_EXTEND_TEST) {
+        regval |= B20_SIGN_EXTEND_MASK ; // sign extend bit #20 to whole word
+    }
+    else {
+        regval &= DWT_DRX_CARRIER_INT_MASK ;                               // make sure upper bits are clear if not sign extending
+    }
+
+    return (int) regval ; // cast unsigned value to signed quantity.
+}
+
+// Multiplication factors to convert carrier integrator value to a frequency offset in Hertz
+
+#define DWT_FREQ_OFFSET_MULTIPLIER          (998.4e6/2.0/1024.0/131072.0)
+#define DWT_FREQ_OFFSET_MULTIPLIER_110KB    (998.4e6/2.0/8192.0/131072.0)
+
+// Multiplication factors to convert frequency offset in Hertz to PPM crystal offset
+// NB: also changes sign so a positive value means the local RX clock is running slower than the remote TX device.
+
+#define DWT_HERTZ_TO_PPM_MULTIPLIER_CHAN_1     (-1.0e6/3494.4e6)
+#define DWT_HERTZ_TO_PPM_MULTIPLIER_CHAN_2     (-1.0e6/3993.6e6)
+#define DWT_HERTZ_TO_PPM_MULTIPLIER_CHAN_3     (-1.0e6/4492.8e6)
+#define DWT_HERTZ_TO_PPM_MULTIPLIER_CHAN_5     (-1.0e6/6489.6e6)
+
+float dwt_rx_clock_ratio_offset(const struct device *dev) {
+    //TODO: Use correct channel!
+    return dwt_readcarrierintegrator(dev) * (DWT_FREQ_OFFSET_MULTIPLIER * DWT_HERTZ_TO_PPM_MULTIPLIER_CHAN_5 / 1.0e6);
+}
+
 
 static int dwt_initialise_dev(const struct device *dev)
 {
