@@ -15,7 +15,7 @@
 #ifndef ZEPHYR_INCLUDE_NET_ETHERNET_BRIDGE_H_
 #define ZEPHYR_INCLUDE_NET_ETHERNET_BRIDGE_H_
 
-#include <sys/slist.h>
+#include <zephyr/sys/slist.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +34,7 @@ struct eth_bridge {
 	struct k_mutex lock;
 	sys_slist_t interfaces;
 	sys_slist_t listeners;
+	bool initialized;
 };
 
 #define ETH_BRIDGE_INITIALIZER(obj) \

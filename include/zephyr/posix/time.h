@@ -56,10 +56,10 @@ struct itimerspec {
 # endif
 #endif /* CONFIG_NEWLIB_LIBC */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <errno.h>
 #include "posix_types.h"
-#include <posix/signal.h>
+#include <zephyr/posix/signal.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,8 +72,6 @@ extern "C" {
 #ifndef CLOCK_MONOTONIC
 #define CLOCK_MONOTONIC 4
 #endif
-
-#define NSEC_PER_MSEC (NSEC_PER_USEC * USEC_PER_MSEC)
 
 #ifndef TIMER_ABSTIME
 #define TIMER_ABSTIME 4

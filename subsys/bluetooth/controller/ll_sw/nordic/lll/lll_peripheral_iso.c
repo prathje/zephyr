@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <toolchain.h>
+#include <zephyr/toolchain.h>
 #include <zephyr/types.h>
-#include <sys/byteorder.h>
+#include <zephyr/sys/byteorder.h>
 #include <soc.h>
 
 #include "hal/cpu.h"
@@ -18,8 +18,6 @@
 #include "lll_conn_iso.h"
 #include "lll_peripheral_iso.h"
 
-#define LOG_MODULE_NAME bt_ctlr_lll_peripheral_iso
-#include "common/log.h"
 #include "hal/debug.h"
 
 int lll_peripheral_iso_init(void)

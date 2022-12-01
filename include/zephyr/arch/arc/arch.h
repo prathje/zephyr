@@ -16,30 +16,30 @@
 #ifndef ZEPHYR_INCLUDE_ARCH_ARC_ARCH_H_
 #define ZEPHYR_INCLUDE_ARCH_ARC_ARCH_H_
 
-#include <devicetree.h>
-#include <sw_isr_table.h>
-#include <arch/common/ffs.h>
-#include <arch/arc/thread.h>
-#include <arch/common/sys_bitops.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/sw_isr_table.h>
+#include <zephyr/arch/common/ffs.h>
+#include <zephyr/arch/arc/thread.h>
+#include <zephyr/arch/common/sys_bitops.h>
 #include "sys-io-common.h"
 
-#include <arch/arc/v2/exc.h>
-#include <arch/arc/v2/irq.h>
-#include <arch/arc/v2/misc.h>
-#include <arch/arc/v2/aux_regs.h>
-#include <arch/arc/v2/arcv2_irq_unit.h>
-#include <arch/arc/v2/asm_inline.h>
-#include <arch/arc/arc_addr_types.h>
-#include <arch/arc/v2/error.h>
+#include <zephyr/arch/arc/v2/exc.h>
+#include <zephyr/arch/arc/v2/irq.h>
+#include <zephyr/arch/arc/v2/misc.h>
+#include <zephyr/arch/arc/v2/aux_regs.h>
+#include <zephyr/arch/arc/v2/arcv2_irq_unit.h>
+#include <zephyr/arch/arc/v2/asm_inline.h>
+#include <zephyr/arch/arc/arc_addr_types.h>
+#include <zephyr/arch/arc/v2/error.h>
 
 #ifdef CONFIG_ARC_CONNECT
-#include <arch/arc/v2/arc_connect.h>
+#include <zephyr/arch/arc/v2/arc_connect.h>
 #endif
 
 #ifdef CONFIG_ISA_ARCV2
 #include "v2/sys_io.h"
 #ifdef CONFIG_ARC_HAS_SECURE
-#include <arch/arc/v2/secureshield/arc_secure.h>
+#include <zephyr/arch/arc/v2/secureshield/arc_secure.h>
 #endif
 #endif
 
@@ -77,6 +77,15 @@
 #error "Unsupported configuration: ARC_FIRQ_STACK and (RGF_NUM_BANKS < 2)"
 #endif
 
+/* In case of ARC 2+2 secure mode enabled the firq are not supported by HW */
+#if defined(CONFIG_ARC_FIRQ) && defined(CONFIG_ARC_HAS_SECURE)
+#error "Unsupported configuration: ARC_FIRQ and ARC_HAS_SECURE"
+#endif
+
+#if defined(CONFIG_SMP) && !defined(CONFIG_MULTITHREADING)
+#error "Non-multithreading mode isn't supported on SMP targets"
+#endif
+
 #ifndef _ASMLANGUAGE
 
 #ifdef __cplusplus
@@ -88,6 +97,12 @@ extern "C" {
 #else
 #define ARCH_STACK_PTR_ALIGN	4
 #endif /* CONFIG_64BIT */
+
+BUILD_ASSERT(CONFIG_ISR_STACK_SIZE % ARCH_STACK_PTR_ALIGN == 0,
+	"CONFIG_ISR_STACK_SIZE must be a multiple of ARCH_STACK_PTR_ALIGN");
+
+BUILD_ASSERT(CONFIG_ARC_EXCEPTION_STACK_SIZE % ARCH_STACK_PTR_ALIGN == 0,
+	"CONFIG_ARC_EXCEPTION_STACK_SIZE must be a multiple of ARCH_STACK_PTR_ALIGN");
 
 /* Indicate, for a minimally sized MPU region, how large it must be and what
  * its base address must be aligned to.
@@ -239,7 +254,7 @@ BUILD_ASSERT(CONFIG_PRIVILEGED_STACK_SIZE % Z_ARC_MPU_ALIGN == 0,
 #ifdef CONFIG_ARC_MPU
 
 /* Legacy case: retain containing extern "C" with C++ */
-#include <arch/arc/v2/mpu/arc_mpu.h>
+#include <zephyr/arch/arc/v2/mpu/arc_mpu.h>
 
 #define K_MEM_PARTITION_P_NA_U_NA	AUX_MPU_ATTR_N
 #define K_MEM_PARTITION_P_RW_U_RW	(AUX_MPU_ATTR_UW | AUX_MPU_ATTR_UR | \
@@ -333,6 +348,10 @@ static ALWAYS_INLINE void arch_nop(void)
 {
 	__builtin_arc_nop();
 }
+
+#ifndef CONFIG_XIP
+extern char __arc_rw_sram_size[];
+#endif /* CONFIG_XIP */
 
 #endif /* _ASMLANGUAGE */
 

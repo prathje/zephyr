@@ -11,7 +11,7 @@
 #ifndef _LINKER
 #if defined(_ASMLANGUAGE)
 
-#include <toolchain/common.h>
+#include <zephyr/toolchain/common.h>
 
 #define FUNC_CODE()
 #define FUNC_INSTR(a)
@@ -81,8 +81,12 @@
 
 
 #define __no_optimization __attribute__((optnone))
+#define __fallthrough     __attribute__((fallthrough))
 
-#include <toolchain/gcc.h>
+#define TOOLCHAIN_HAS_C_GENERIC                 1
+#define TOOLCHAIN_HAS_C_AUTO_TYPE               1
+
+#include <zephyr/toolchain/gcc.h>
 
 #undef BUILD_ASSERT
 #ifdef __cplusplus

@@ -261,12 +261,12 @@
 #define GIC_INTID_SPURIOUS		1023
 
 /* Fixme: update from platform specific define or dt */
-#define GIC_NUM_CPU_IF			CONFIG_MP_NUM_CPUS
+#define GIC_NUM_CPU_IF			CONFIG_MP_MAX_NUM_CPUS
 
 #ifndef _ASMLANGUAGE
 
 #include <zephyr/types.h>
-#include <device.h>
+#include <zephyr/device.h>
 
 /*
  * GIC Driver Interface Functions

@@ -250,7 +250,7 @@ passed in.  This includes:
 * Any other arguments that have a limited range of valid values.
 
 Verification functions involve a great deal of boilerplate code which has been
-made simpler by some macros in :zephyr_file:`include/syscall_handler.h`.
+made simpler by some macros in :zephyr_file:`include/zephyr/syscall_handler.h`.
 Verification functions should be declared using these macros.
 
 Argument Validation
@@ -414,7 +414,7 @@ bytes processed. This too should use a stack copy:
 
         Z_OOPS(z_user_from_copy(&size, size_ptr, sizeof(size));
         ret = z_impl_in_out_syscall(&size);
-        *size_ptr = size;
+        Z_OOPS(z_user_to_copy(size_ptr, &size, sizeof(size)));
         return ret;
     }
 
@@ -608,7 +608,7 @@ APIs
 ****
 
 Helper macros for creating system call verification functions are provided in
-:zephyr_file:`include/syscall_handler.h`:
+:zephyr_file:`include/zephyr/syscall_handler.h`:
 
 * :c:macro:`Z_SYSCALL_OBJ()`
 * :c:macro:`Z_SYSCALL_OBJ_INIT()`
@@ -622,7 +622,7 @@ Helper macros for creating system call verification functions are provided in
 * :c:macro:`Z_SYSCALL_VERIFY`
 
 Functions for invoking system calls are defined in
-:zephyr_file:`include/syscall.h`:
+:zephyr_file:`include/zephyr/syscall.h`:
 
 * :c:func:`_arch_syscall_invoke0`
 * :c:func:`_arch_syscall_invoke1`

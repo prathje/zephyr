@@ -7,7 +7,7 @@
 #ifndef ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_STM32_PINCTRL_H_
 #define ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_STM32_PINCTRL_H_
 
-#include <dt-bindings/pinctrl/stm32-pinctrl-common.h>
+#include <zephyr/dt-bindings/pinctrl/stm32-pinctrl-common.h>
 
 /* Adapted from Linux: include/dt-bindings/pinctrl/stm32-pinfunc.h */
 
@@ -39,6 +39,13 @@
  * This is inspired from Linux equivalent st,stm32f429-pinctrl binding
  */
 
+#define STM32_MODE_SHIFT 0U
+#define STM32_MODE_MASK  0x1FU
+#define STM32_LINE_SHIFT 5U
+#define STM32_LINE_MASK  0xFU
+#define STM32_PORT_SHIFT 9U
+#define STM32_PORT_MASK  0xFU
+
 /**
  * @brief Pin configuration configuration bit field.
  *
@@ -52,14 +59,6 @@
  * @param line Pin (0..15)
  * @param mode Mode (ANALOG, GPIO_IN, ALTERNATE).
  */
-
-#define STM32_MODE_SHIFT 0U
-#define STM32_MODE_MASK  0x1FU
-#define STM32_LINE_SHIFT 5U
-#define STM32_LINE_MASK  0xFU
-#define STM32_PORT_SHIFT 9U
-#define STM32_PORT_MASK  0xFU
-
 #define STM32_PINMUX(port, line, mode)					       \
 		(((((port) - 'A') & STM32_PORT_MASK) << STM32_PORT_SHIFT) |    \
 		(((line) & STM32_LINE_MASK) << STM32_LINE_SHIFT) |	       \

@@ -20,8 +20,10 @@
  * @{
  */
 
+#include <errno.h>
+
 #include <zephyr/types.h>
-#include <device.h>
+#include <zephyr/device.h>
 
 #ifdef __cplusplus
 extern "C" {

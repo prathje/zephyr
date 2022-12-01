@@ -45,6 +45,13 @@
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 #endif
 
+#if defined(CONFIG_HAS_DYNAMIC_DEVICE_HANDLES)
+	SECTION_DATA_PROLOGUE(device_handles,,)
+	{
+#include "device-handles.ld"
+	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
+#endif 	/* CONFIG_HAS_DYNAMIC_DEVICE_HANDLES */
+
 	SECTION_DATA_PROLOGUE(initshell,,)
 	{
 		/* link in shell initialization objects for all modules that
@@ -59,14 +66,15 @@
 		__shell_cmd_end = .;
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 
+	ITERABLE_SECTION_RAM_GC_ALLOWED(log_mpsc_pbuf, 4)
+	ITERABLE_SECTION_RAM(log_msg_ptr, 4)
+
 	SECTION_DATA_PROLOGUE(log_dynamic_sections,,)
 	{
 		__log_dynamic_start = .;
 		KEEP(*(SORT(.log_dynamic_*)));
 		__log_dynamic_end = .;
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
-
-	ITERABLE_SECTION_RAM(_static_thread_data, 4)
 
 #ifdef CONFIG_USERSPACE
 	/* All kernel objects within are assumed to be either completely
@@ -81,7 +89,6 @@
 
 	ITERABLE_SECTION_RAM_GC_ALLOWED(k_timer, 4)
 	ITERABLE_SECTION_RAM_GC_ALLOWED(k_mem_slab, 4)
-	ITERABLE_SECTION_RAM_GC_ALLOWED(k_mem_pool, 4)
 	ITERABLE_SECTION_RAM_GC_ALLOWED(k_heap, 4)
 	ITERABLE_SECTION_RAM_GC_ALLOWED(k_mutex, 4)
 	ITERABLE_SECTION_RAM_GC_ALLOWED(k_stack, 4)
@@ -102,6 +109,10 @@
 #if defined(CONFIG_NETWORKING)
 	NETWORK_RAM_SECTIONS
 #endif /* NETWORKING */
+
+#if defined(CONFIG_PCIE)
+	ITERABLE_SECTION_RAM(pcie_dev, 4)
+#endif /* PCIE */
 
 #if defined(CONFIG_UART_MUX)
 	SECTION_DATA_PROLOGUE(uart_mux,,SUBALIGN(4))
@@ -135,14 +146,21 @@
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 #endif /* CONFIG_USB_DEVICE_BOS */
 
+
+#if defined(CONFIG_RTIO)
+	SECTION_DATA_PROLOGUE(rtio,,SUBALIGN(4))
+	{
+		__rtio_start = .;
+		*(".rtio.*")
+		KEEP(*(SORT_BY_NAME(".rtio.*")))
+		__rtio_end = .;
+	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
+
+	ITERABLE_SECTION_RAM(rtio, 4)
+	ITERABLE_SECTION_RAM(rtio_iodev, 4)
+#endif /* CONFIG_RTIO */
+
+
 #ifdef CONFIG_USERSPACE
 	_static_kernel_objects_end = .;
 #endif
-
-#if defined(CONFIG_ZTEST)
-	ITERABLE_SECTION_RAM(ztest_suite_node, 4)
-#if defined(CONFIG_ZTEST_NEW_API)
-	ITERABLE_SECTION_RAM(ztest_unit_test, 4)
-	ITERABLE_SECTION_RAM(ztest_test_rule, 4)
-#endif /* CONFIG_ZTEST_NEW_API */
-#endif /* CONFIG_ZTEST */

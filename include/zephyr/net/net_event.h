@@ -12,7 +12,7 @@
 #ifndef ZEPHYR_INCLUDE_NET_NET_EVENT_H_
 #define ZEPHYR_INCLUDE_NET_NET_EVENT_H_
 
-#include <net/net_ip.h>
+#include <zephyr/net/net_ip.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +36,9 @@ extern "C" {
 enum net_event_if_cmd {
 	NET_EVENT_IF_CMD_DOWN = 1,
 	NET_EVENT_IF_CMD_UP,
+	NET_EVENT_IF_CMD_ADMIN_DOWN,
+	NET_EVENT_IF_CMD_ADMIN_UP,
+
 };
 
 #define NET_EVENT_IF_DOWN				\
@@ -43,6 +46,13 @@ enum net_event_if_cmd {
 
 #define NET_EVENT_IF_UP					\
 	(_NET_EVENT_IF_BASE | NET_EVENT_IF_CMD_UP)
+
+#define NET_EVENT_IF_ADMIN_DOWN				\
+	(_NET_EVENT_IF_BASE | NET_EVENT_IF_CMD_ADMIN_DOWN)
+
+#define NET_EVENT_IF_ADMIN_UP				\
+	(_NET_EVENT_IF_BASE | NET_EVENT_IF_CMD_ADMIN_UP)
+
 
 /* IPv6 Events */
 #define _NET_IPV6_LAYER		NET_MGMT_LAYER_L3

@@ -7,7 +7,8 @@
 #ifndef ZEPHYR_INCLUDE_TIME_UNITS_H_
 #define ZEPHYR_INCLUDE_TIME_UNITS_H_
 
-#include <toolchain.h>
+#include <zephyr/toolchain.h>
+#include <zephyr/sys/util.h>
 
 #ifdef __cplusplus
 extern "C" {

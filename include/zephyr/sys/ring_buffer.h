@@ -10,15 +10,13 @@
 #ifndef ZEPHYR_INCLUDE_SYS_RING_BUFFER_H_
 #define ZEPHYR_INCLUDE_SYS_RING_BUFFER_H_
 
-#include <kernel.h>
-#include <sys/util.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/util.h>
 #include <errno.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SIZE32_OF(x) (sizeof((x))/sizeof(uint32_t))
 
 /* The limit is used by algorithm for distinguishing between empty and full
  * state.
@@ -54,6 +52,10 @@ static inline void ring_buf_internal_reset(struct ring_buf *buf, int32_t value)
 }
 
 /**
+ * @brief Data Structure APIs
+ * @defgroup datastructure_apis Data Structure APIs
+ */
+/**
  * @defgroup ring_buffer_apis Ring Buffer APIs
  * @ingroup datastructure_apis
  * @{
@@ -78,8 +80,8 @@ static inline void ring_buf_internal_reset(struct ring_buf *buf, int32_t value)
 		RING_BUFFER_SIZE_ASSERT_MSG); \
 	static uint8_t __noinit _ring_buffer_data_##name[size8]; \
 	struct ring_buf name = { \
-		.size = size8, \
-		.buffer = _ring_buffer_data_##name \
+		.buffer = _ring_buffer_data_##name, \
+		.size = size8 \
 	}
 
 /**
@@ -102,8 +104,8 @@ static inline void ring_buf_internal_reset(struct ring_buf *buf, int32_t value)
 		RING_BUFFER_SIZE_ASSERT_MSG); \
 	static uint32_t __noinit _ring_buffer_data_##name[size32]; \
 	struct ring_buf name = { \
-		.size = 4 * (size32), \
-		.buffer = (uint8_t *) _ring_buffer_data_##name \
+		.buffer = (uint8_t *) _ring_buffer_data_##name, \
+		.size = 4 * (size32) \
 	}
 
 /**
@@ -130,6 +132,17 @@ static inline void ring_buf_internal_reset(struct ring_buf *buf, int32_t value)
  */
 #define RING_BUF_ITEM_DECLARE_POW2(name, pow) \
 	RING_BUF_ITEM_DECLARE(name, BIT(pow))
+
+/**
+ * @brief Compute the ring buffer size in 32-bit needed to store an element
+ *
+ * The argument can be a type or an expression.
+ * Note: rounds up if the size is not a multiple of 32 bits.
+ *
+ * @param expr Expression or type to compute the size of
+ */
+#define RING_BUF_ITEM_SIZEOF(expr) \
+	((sizeof(expr) + sizeof(uint32_t) - 1) / sizeof(uint32_t))
 
 /**
  * @brief Initialize a ring buffer for byte data.

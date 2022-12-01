@@ -11,10 +11,10 @@
  * Linker script for the Nios II platform
  */
 
-#include <linker/sections.h>
+#include <zephyr/linker/sections.h>
 
-#include <linker/linker-defs.h>
-#include <linker/linker-tool.h>
+#include <zephyr/linker/linker-defs.h>
+#include <zephyr/linker/linker-tool.h>
 
 /* These sections are specific to this CPU */
 #define _EXCEPTION_SECTION_NAME exceptions
@@ -42,11 +42,10 @@
 
 #ifdef CONFIG_XIP
 	#define ROMABLE_REGION FLASH
-	#define RAMABLE_REGION SRAM
 #else
-	#define ROMABLE_REGION SRAM
-	#define RAMABLE_REGION SRAM
+	#define ROMABLE_REGION RAM
 #endif
+#define RAMABLE_REGION RAM
 
 #ifdef CONFIG_XIP
 
@@ -56,7 +55,7 @@ MEMORY
     {
     RESET (rx) : ORIGIN = _RESET_VECTOR, LENGTH = 0x20
     FLASH (rx) : ORIGIN = _RESET_VECTOR + 0x20 , LENGTH = (_ROM_SIZE - 0x20)
-    SRAM  (wx) : ORIGIN = _EXC_VECTOR, LENGTH = _RAM_SIZE - (_EXC_VECTOR - _RAM_ADDR)
+    RAM   (wx) : ORIGIN = _EXC_VECTOR, LENGTH = _RAM_SIZE - (_EXC_VECTOR - _RAM_ADDR)
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST  (wx)      : ORIGIN = 0xFFFFF7FF, LENGTH = 2K
 
@@ -67,7 +66,7 @@ MEMORY
 MEMORY
     {
     RESET (wx) : ORIGIN = _RESET_VECTOR, LENGTH = 0x20
-    SRAM  (wx) : ORIGIN = _EXC_VECTOR, LENGTH = _RAM_SIZE - (_EXC_VECTOR - _RAM_ADDR)
+    RAM   (wx) : ORIGIN = _EXC_VECTOR, LENGTH = _RAM_SIZE - (_EXC_VECTOR - _RAM_ADDR)
 
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST  (wx)      : ORIGIN = 0xFFFFF7FF, LENGTH = 2K
@@ -79,7 +78,7 @@ ENTRY(CONFIG_KERNEL_ENTRY)
 SECTIONS
     {
 
-#include <linker/rel-sections.ld>
+#include <zephyr/linker/rel-sections.ld>
 
     /*
      * .plt and .iplt are here according to
@@ -134,7 +133,7 @@ SECTIONS
 
     __rodata_region_start = .;
 
-#include <linker/common-rom.ld>
+#include <zephyr/linker/common-rom.ld>
 
     SECTION_PROLOGUE(_RODATA_SECTION_NAME,,)
         {
@@ -152,7 +151,7 @@ SECTIONS
         . = ALIGN(4);
         } GROUP_LINK_IN(ROMABLE_REGION)
 
-#include <linker/cplusplus-rom.ld>
+#include <zephyr/linker/cplusplus-rom.ld>
 
     __rodata_region_end = .;
     __rodata_region_size = __rodata_region_end - __rodata_region_start;
@@ -186,7 +185,7 @@ SECTIONS
         _image_ram_start = .;
 #endif
 
-#include <linker/common-ram.ld>
+#include <zephyr/linker/common-ram.ld>
 
     SECTION_DATA_PROLOGUE(_DATA_SECTION_NAME,,)
         {
@@ -229,7 +228,7 @@ SECTIONS
     __data_size = __data_end - __data_start;
     __data_load_start = LOADADDR(_DATA_SECTION_NAME);
 
-#include <linker/cplusplus-ram.ld>
+#include <zephyr/linker/cplusplus-ram.ld>
 
 /* Located in generated directory. This file is populated by the
  * zephyr_linker_sources() Cmake function.
@@ -258,7 +257,7 @@ SECTIONS
         __bss_end = ALIGN(4);
         } GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 
-#include <linker/common-noinit.ld>
+#include <zephyr/linker/common-noinit.ld>
 
     /* Define linker symbols */
     _image_ram_end = .;
@@ -271,6 +270,6 @@ SECTIONS
  */
 #include <snippets-sections.ld>
 
-#include <linker/debug-sections.ld>
+#include <zephyr/linker/debug-sections.ld>
 
     }

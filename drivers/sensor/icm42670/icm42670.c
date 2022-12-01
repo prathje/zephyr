@@ -7,15 +7,15 @@
 
 #define DT_DRV_COMPAT invensense_icm42670
 
-#include <drivers/sensor.h>
-#include <drivers/spi.h>
-#include <sys/byteorder.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/spi.h>
+#include <zephyr/sys/byteorder.h>
 #include "icm42670.h"
 #include "icm42670_reg.h"
 #include "icm42670_spi.h"
 #include "icm42670_trigger.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ICM42670, CONFIG_SENSOR_LOG_LEVEL);
 
 /*
@@ -699,7 +699,7 @@ static const struct sensor_driver_api icm42670_driver_api = {
 		.gpio_int = GPIO_DT_SPEC_INST_GET_OR(inst, int_gpios, { 0 }),                      \
 	};                                                                                         \
 												   \
-	DEVICE_DT_INST_DEFINE(inst, icm42670_init, NULL, &icm42670_driver_##inst,                  \
+	SENSOR_DEVICE_DT_INST_DEFINE(inst, icm42670_init, NULL, &icm42670_driver_##inst,           \
 			      &icm42670_cfg_##inst, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,      \
 			      &icm42670_driver_api);
 

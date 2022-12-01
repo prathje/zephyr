@@ -4,14 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <init.h>
-#include <kernel.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
 #include <ksched.h>
+#include <zephyr/irq.h>
 
 volatile struct {
 	arch_cpustart_t fn;
 	void *arg;
-} riscv_cpu_init[CONFIG_MP_NUM_CPUS];
+} riscv_cpu_init[CONFIG_MP_MAX_NUM_CPUS];
 
 volatile uintptr_t riscv_cpu_wake_flag;
 volatile void *riscv_cpu_sp;
@@ -22,7 +23,7 @@ void arch_start_cpu(int cpu_num, k_thread_stack_t *stack, int sz,
 	riscv_cpu_init[cpu_num].fn = fn;
 	riscv_cpu_init[cpu_num].arg = arg;
 
-	riscv_cpu_sp = Z_THREAD_STACK_BUFFER(stack) + sz;
+	riscv_cpu_sp = Z_KERNEL_STACK_BUFFER(stack) + sz;
 	riscv_cpu_wake_flag = cpu_num;
 
 	while (riscv_cpu_wake_flag != 0U) {
@@ -32,11 +33,14 @@ void arch_start_cpu(int cpu_num, k_thread_stack_t *stack, int sz,
 
 void z_riscv_secondary_cpu_init(int cpu_num)
 {
+#ifdef CONFIG_THREAD_LOCAL_STORAGE
+	__asm__("mv tp, %0" : : "r" (z_idle_threads[cpu_num].tls));
+#endif
 #if defined(CONFIG_RISCV_SOC_INTERRUPT_INIT)
 	soc_interrupt_init();
 #endif
-#ifdef CONFIG_PMP_STACK_GUARD
-	z_riscv_configure_interrupt_stack_guard();
+#ifdef CONFIG_RISCV_PMP
+	z_riscv_pmp_init();
 #endif
 #ifdef CONFIG_SMP
 	irq_enable(RISCV_MACHINE_SOFT_IRQ);
@@ -63,7 +67,9 @@ void arch_sched_ipi(void)
 	key = arch_irq_lock();
 
 	id = _current_cpu->id;
-	for (i = 0U; i < CONFIG_MP_NUM_CPUS; i++) {
+	unsigned int num_cpus = arch_num_cpus();
+
+	for (i = 0U; i < num_cpus; i++) {
 		if (i != id) {
 			volatile uint32_t *r = (uint32_t *)get_hart_msip(i);
 			*r = 1U;

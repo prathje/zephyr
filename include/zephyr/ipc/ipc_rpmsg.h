@@ -7,7 +7,7 @@
 #ifndef ZEPHYR_INCLUDE_IPC_SERVICE_IPC_RPMSG_H_
 #define ZEPHYR_INCLUDE_IPC_SERVICE_IPC_RPMSG_H_
 
-#include <ipc/ipc_service.h>
+#include <zephyr/ipc/ipc_service.h>
 #include <openamp/open_amp.h>
 #include <metal/device.h>
 
@@ -18,6 +18,7 @@ extern "C" {
 /**
  * @brief IPC service RPMsg API
  * @defgroup ipc_service_rpmsg_api IPC service RPMsg API
+ * @ingroup ipc
  * @{
  */
 
@@ -90,7 +91,8 @@ struct ipc_rpmsg_instance {
  *  Init an RPMsg instance.
  *
  *  @param instance Pointer to the RPMsg instance struct.
- *  @param role Master / Remote role.
+ *  @param role Host / Remote role.
+ *  @param buffer_size Size of the buffer used to send data between host and remote.
  *  @param shm_io SHM IO region pointer.
  *  @param vdev VirtIO device pointer.
  *  @param shb Shared memory region pointer.
@@ -105,17 +107,32 @@ struct ipc_rpmsg_instance {
  */
 int ipc_rpmsg_init(struct ipc_rpmsg_instance *instance,
 		   unsigned int role,
+		   unsigned int buffer_size,
 		   struct metal_io_region *shm_io,
 		   struct virtio_device *vdev,
 		   void *shb, size_t size,
 		   rpmsg_ns_bind_cb ns_bind_cb);
+
+
+/** @brief
+ *
+ * Deinit an RPMsg instance
+ *
+ * @param instance Pointer to the RPMsg instance struct.
+ * @param role Host / Remote role.
+ *
+ * @retval -EINVAL When some parameter is missing
+ * @retval 0 If successful
+ */
+int ipc_rpmsg_deinit(struct ipc_rpmsg_instance *instance,
+		   unsigned int role);
 
 /** @brief Register an endpoint.
  *
  *  Register an endpoint to a provided RPMsg instance.
  *
  *  @param instance Pointer to the RPMsg instance struct.
- *  @param role Master / Remote role.
+ *  @param role Host / Remote role.
  *  @param ept Endpoint to register.
  *
  *  @retval -EINVAL When some parameter is missing.

@@ -6,8 +6,8 @@
 
 #include <errno.h>
 #include <string.h>
-#include <device.h>
-#include <drivers/fpga.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/fpga.h>
 #include "fpga_eos_s3.h"
 
 void eos_s3_fpga_enable_clk(void)
@@ -114,6 +114,12 @@ static int eos_s3_fpga_load(const struct device *dev, uint32_t *image_ptr, uint3
 	PMU->GEN_PURPOSE_0 = FB_CFG_DISABLE;
 	PIF->CFG_CTL = CFG_CTL_LOAD_DISABLE;
 	PMU->FB_ISOLATION = FB_ISOLATION_DISABLE;
+
+	/* disable software resets */
+	CRU->FB_SW_RESET &= ~(FB_C21_DOMAIN_SW_RESET
+			    | FB_C16_DOMAIN_SW_RESET
+			    | FB_C02_DOMAIN_SW_RESET
+			    | FB_C09_DOMAIN_SW_RESET);
 
 	return 0;
 }

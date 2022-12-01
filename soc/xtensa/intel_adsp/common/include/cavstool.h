@@ -7,7 +7,7 @@
 
 /* The cavstool.py script that launched us listens for a very simple
  * set of IPC commands to help test.  Pass one of the following values
- * as the "data" argument to cavs_ipc_send_message(CAVS_HOST_DEV, ...):
+ * as the "data" argument to intel_adsp_ipc_send_message(INTEL_ADSP_IPC_HOST_DEV, ...):
  */
 enum cavstool_cmd {
 	/* The host takes no action, but signals DONE to complete the message */
@@ -46,7 +46,10 @@ enum cavstool_cmd {
 	IPCCMD_HDA_VALIDATE,
 
 	/* Host sends some data */
-	IPCCMD_HDA_SEND
+	IPCCMD_HDA_SEND,
+
+	/* Host prints some data */
+	IPCCMD_HDA_PRINT
 };
 
 #endif /* ZEPHYR_INCLUDE_CAVS_TEST_H */

@@ -5,10 +5,11 @@
  */
 
 struct lll_conn_iso_stream_rxtx {
-	uint8_t phy;            /* PHY */
-	uint8_t burst_number;   /* Burst number (BN) */
-	uint8_t flush_timeout;  /* Flush timeout (FT) */
-	uint8_t max_octets;     /* Maximum PDU size */
+	uint64_t payload_number:39; /* cisPayloadNumber */
+	uint8_t  phy;               /* PHY */
+	uint8_t  burst_number;      /* Burst number (BN) */
+	uint8_t  flush_timeout;     /* Flush timeout (FT) */
+	uint8_t  max_octets;        /* Maximum PDU size */
 };
 
 struct lll_conn_iso_stream {
@@ -27,12 +28,14 @@ struct lll_conn_iso_stream {
 
 	/* Event and payload counters */
 	uint64_t event_count : 39;       /* cisEventCount */
-	uint64_t rx_payload_number : 39; /* cisPayloadNumber */
 
 	/* Acknowledgment and flow control */
 	uint8_t sn:1;               /* Sequence number */
 	uint8_t nesn:1;             /* Next expected sequence number */
 	uint8_t cie:1;              /* Close isochronous event */
+	uint8_t flushed:1;          /* 1 if CIS LLL has been flushed */
+	uint8_t active:1;           /* 1 if CIS LLL is active */
+	uint8_t datapath_ready_rx:1;/* 1 if datapath for RX is ready */
 
 	/* Resumption information */
 	uint8_t next_subevent;      /* Next subevent to schedule */
@@ -53,10 +56,24 @@ struct lll_conn_iso_group {
 
 	/* Resumption information */
 	uint16_t resume_cis;    /* CIS handle to schedule at resume */
+
+	/* Window widening. Relies on vendor specific conversion macros, e.g.
+	 * EVENT_US_FRAC_TO_TICKS().
+	 */
+	uint32_t window_widening_periodic_us_frac; /* Widening in us fractions per
+						    * ISO interval.
+						    */
+	uint32_t window_widening_prepare_us_frac;  /* Widening in us fractions for
+						    * active prepare.
+						    */
+	uint32_t window_widening_event_us_frac;    /* Accumulated widening in us
+						    * fractions for active event.
+						    */
+	uint32_t window_widening_max_us;	   /* Maximum widening in us */
 };
 
 int lll_conn_iso_init(void);
 int lll_conn_iso_reset(void);
-void lll_conn_iso_done(struct lll_conn_iso_group *cig, uint8_t trx_cnt,
+void lll_conn_iso_done(struct lll_conn_iso_group *cig, uint32_t trx_performed,
 		       uint16_t prog_to_anchor_us, uint8_t mic_state);
 void lll_conn_iso_flush(uint16_t handle, struct lll_conn_iso_stream *lll);

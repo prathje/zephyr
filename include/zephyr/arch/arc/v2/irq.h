@@ -14,15 +14,17 @@
 #ifndef ZEPHYR_INCLUDE_ARCH_ARC_V2_IRQ_H_
 #define ZEPHYR_INCLUDE_ARCH_ARC_V2_IRQ_H_
 
-#include <arch/arc/v2/aux_regs.h>
-#include <toolchain/common.h>
-#include <irq.h>
-#include <sys/util.h>
-#include <sw_isr_table.h>
+#include <zephyr/arch/arc/v2/aux_regs.h>
+#include <zephyr/toolchain/common.h>
+#include <zephyr/irq.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/sw_isr_table.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define ARC_MP_PRIMARY_CPU_ID 0
 
 #ifndef _ASMLANGUAGE
 
@@ -37,8 +39,6 @@ extern void sys_trace_isr_exit(void);
 
 extern void z_irq_priority_set(unsigned int irq, unsigned int prio,
 			      uint32_t flags);
-extern void _isr_wrapper(void);
-extern void z_irq_spurious(const void *unused);
 
 /* Z_ISR_DECLARE will populate the .intList section with the interrupt's
  * parameters, which will then be used by gen_irq_tables.py to create

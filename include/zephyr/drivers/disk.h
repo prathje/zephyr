@@ -21,12 +21,13 @@
 /**
  * @brief Disk Driver Interface
  * @defgroup disk_driver_interface Disk Driver Interface
+ * @ingroup io_interfaces
  * @{
  */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <zephyr/types.h>
-#include <sys/dlist.h>
+#include <zephyr/sys/dlist.h>
 
 #ifdef __cplusplus
 extern "C" {

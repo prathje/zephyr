@@ -200,17 +200,106 @@ on https://github.com and have Git tools available on your development system.
    details link near the end of the PR conversation list. See
    `Continuous Integration`_ for more information
 
-Repository layout
-*****************
+.. _source_tree_v2:
 
-To clone the main Zephyr Project repositories use the instructions in
+Source Tree Structure
+*********************
+
+To clone the main Zephyr Project repository use the instructions in
 :ref:`get_the_code`.
 
-The Zephyr project directory structure is described in :ref:`source_tree_v2`
-documentation. In addition to the Zephyr kernel itself, you'll also find the
-sources for technical documentation, sample code, supported board
-configurations, and a collection of subsystem tests.  All of these are
-available for developers to contribute to and enhance.
+This section describes the main repository's source tree. In addition to the
+Zephyr kernel itself, you'll also find the sources for technical documentation,
+sample code, supported board configurations, and a collection of subsystem
+tests.  All of these are available for developers to contribute to and enhance.
+
+Understanding the Zephyr source tree can help locate the code
+associated with a particular Zephyr feature.
+
+At the top of the tree, several files are of importance:
+
+:file:`CMakeLists.txt`
+    The top-level file for the CMake build system, containing a lot of the
+    logic required to build Zephyr.
+
+:file:`Kconfig`
+    The top-level Kconfig file, which refers to the file :file:`Kconfig.zephyr`
+    also found in the top-level directory.
+
+    See :ref:`the Kconfig section of the manual <kconfig>` for detailed Kconfig
+    documentation.
+
+:file:`west.yml`
+    The :ref:`west` manifest, listing the external repositories managed by
+    the west command-line tool.
+
+The Zephyr source tree also contains the following top-level
+directories, each of which may have one or more additional levels of
+subdirectories not described here.
+
+:file:`arch`
+    Architecture-specific kernel and system-on-chip (SoC) code.
+    Each supported architecture (for example, x86 and ARM)
+    has its own subdirectory,
+    which contains additional subdirectories for the following areas:
+
+    * architecture-specific kernel source files
+    * architecture-specific kernel include files for private APIs
+
+:file:`soc`
+    SoC related code and configuration files.
+
+:file:`boards`
+    Board related code and configuration files.
+
+:file:`doc`
+    Zephyr technical documentation source files and tools used to
+    generate the https://docs.zephyrproject.org web content.
+
+:file:`drivers`
+    Device driver code.
+
+:file:`dts`
+    :ref:`devicetree <dt-guide>` source files used to describe non-discoverable
+    board-specific hardware details.
+
+:file:`include`
+    Include files for all public APIs, except those defined under :file:`lib`.
+
+:file:`kernel`
+    Architecture-independent kernel code.
+
+:file:`lib`
+    Library code, including the minimal standard C library.
+
+:file:`misc`
+    Miscellaneous code that doesn't belong to any of the other top-level
+    directories.
+
+:file:`samples`
+    Sample applications that demonstrate the use of Zephyr features.
+
+:file:`scripts`
+    Various programs and other files used to build and test Zephyr
+    applications.
+
+:file:`cmake`
+    Additional build scripts needed to build Zephyr.
+
+:file:`subsys`
+    Subsystems of Zephyr, including:
+
+    * USB device stack code
+    * Networking code, including the Bluetooth stack and networking stacks
+    * File system code
+    * Bluetooth host and controller
+
+:file:`tests`
+    Test code and benchmarks for Zephyr features.
+
+:file:`share`
+    Additional architecture independent data. It currently contains Zephyr's CMake
+    package.
 
 Pull Requests and Issues
 ************************
@@ -300,33 +389,23 @@ various samples with advanced features that can't run in QEMU.
 We highly recommend you run these tests locally to avoid any CI
 failures.
 
-uncrustify
-==========
+clang-format
+============
 
-The `uncrustify tool <https://sourceforge.net/projects/uncrustify>`_ can
+The `clang-format tool <https://clang.llvm.org/docs/ClangFormat.html>`_ can
 be helpful to quickly reformat large amounts of new source code to our
-`Coding Style`_
-standards together with a configuration file we've provided:
+`Coding Style`_ standards together with the ``.clang-format`` configuration file
+provided in the repository. ``clang-format`` is well integrated into most
+editors, but you can also run it manually like this:
 
 .. code-block:: bash
 
-   # On Linux/macOS
-   uncrustify --replace --no-backup -l C -c $ZEPHYR_BASE/.uncrustify.cfg my_source_file.c
-   # On Windows
-   uncrustify --replace --no-backup -l C -c %ZEPHYR_BASE%\.uncrustify.cfg my_source_file.c
+   clang-format -i my_source_file.c
 
-But note that you should not use uncrustify to reformat existing Zephyr code,
-or to modify files in which you only introduce a small fix. This would create a
-lot of unwelcome extra changed lines.
-
-On Linux systems, you can install uncrustify with
-
-.. code-block:: bash
-
-   sudo apt install uncrustify
-
-For Windows installation instructions see the `sourceforge listing for
-uncrustify <https://sourceforge.net/projects/uncrustify>`_.
+``clang-format`` is part of LLVM, which can be downloaded from the project
+`releases page <https://github.com/llvm/llvm-project/releases>`. Note that if
+you are a Linux user, ``clang-format`` will likely be available as a package in
+your distribution repositories.
 
 .. _coding_style:
 
@@ -576,7 +655,7 @@ Changes are submitted as Git commits. Each commit message must contain:
   previous patches of this file.)
 
 * A change description with your logic or reasoning for the changes, followed
-  by a blank line.
+  by a blank line. (Every single line has to be less than 75 characters.)
 
 * A Signed-off-by line, ``Signed-off-by: <name> <email>`` typically added
   automatically by using ``git commit -s``
@@ -728,3 +807,72 @@ Contributions to External Modules
 Follow the guidelines in the :ref:`modules` section for contributing
 :ref:`new modules <submitting_new_modules>` and
 submitting changes to :ref:`existing modules <changes_to_existing_module>`.
+
+.. _treewide-changes:
+
+Treewide Changes
+****************
+
+This section describes contributions that are treewide changes and some
+additional associated requirements that apply to them. These requirements exist
+to try to give such changes increased review and user visibility due to their
+large impact.
+
+Definition and Decision Making
+==============================
+
+A *treewide change* is defined as any change to Zephyr APIs, coding practices,
+or other development requirements that either implies required changes
+throughout the zephyr source code repository or can reasonably be expected to
+do so for a wide class of external Zephyr-based source code.
+
+This definition is informal by necessity. This is because the decision on
+whether any particular change is treewide can be subjective and may depend on
+additional context.
+
+Project maintainers should use good judgement and prioritize the Zephyr
+developer experience when deciding when a proposed change is treewide.
+Protracted disagreements can be resolved by the Zephyr Project's Technical
+Steering Committee (TSC), but please avoid premature escalation to the TSC.
+
+Requirements for Treewide Changes
+=================================
+
+- The zephyr repository must apply the 'treewide' GitHub label to any issues or
+  pull requests that are treewide changes
+
+- The person proposing a treewide change must create an `RFC issue
+  <https://github.com/zephyrproject-rtos/zephyr/issues/new?assignees=&labels=RFC&template=rfc-proposal.md&title=>`_
+  describing the change, its rationale and impact, etc. before any pull
+  requests related to the change can be merged
+
+- The project's `Architecture Working Group (WG)
+  <https://github.com/zephyrproject-rtos/zephyr/wiki/Architecture-Working-Group>`_
+  must include the issue on the agenda and discuss whether the project will
+  accept or reject the change before any pull requests related to the change
+  can be merged (with escalation to the TSC if consensus is not reached at the
+  WG)
+
+- The Architecture WG must specify the procedure for merging any PRs associated
+  with each individual treewide change, including any required approvals for
+  pull requests affecting specific subsystems or extra review time requirements
+
+- The person proposing a treewide change must email
+  devel@lists.zephyrproject.org about the RFC if it is accepted by the
+  Architecture WG before any pull requests related to the change can be merged
+
+Examples
+========
+
+Some example past treewide changes are:
+
+- the deprecation of version 1 of the :ref:`Logging API <logging_api>` in favor
+  of version 2 (see commit `262cc55609
+  <https://github.com/zephyrproject-rtos/zephyr/commit/262cc55609b73ea61b5f999c6c6daaba20bc5240>`_)
+- the removal of support for a legacy :ref:`dt-bindings` syntax
+  (`6bf761fc0a
+  <https://github.com/zephyrproject-rtos/zephyr/commit/6bf761fc0a2811b037abec0c963d60b00c452acb>`_)
+
+Note that adding a new version of a widely used API while maintaining
+support for the old one is not a treewide change. Deprecation and removal of
+such APIs, however, are treewide changes.

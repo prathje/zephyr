@@ -7,14 +7,15 @@
 #define DT_DRV_COMPAT ite_it8xxx2_espi
 
 #include <assert.h>
-#include <drivers/espi.h>
-#include <drivers/gpio.h>
-#include <kernel.h>
+#include <zephyr/drivers/espi.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/kernel.h>
 #include <soc.h>
 #include "soc_espi.h"
 #include "espi_utils.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/irq.h>
 LOG_MODULE_REGISTER(espi, CONFIG_ESPI_LOG_LEVEL);
 
 #define ESPI_IT8XXX2_GET_GCTRL_BASE \
@@ -45,6 +46,12 @@ LOG_MODULE_REGISTER(espi, CONFIG_ESPI_LOG_LEVEL);
 #define IT8XXX2_ESPI_TO_WUC_ENABLE             BIT(4)
 #define IT8XXX2_ESPI_VW_INTERRUPT_ENABLE       BIT(7)
 #define IT8XXX2_ESPI_INTERRUPT_PUT_PC          BIT(7)
+
+/*
+ * VWCTRL2 register:
+ * bit4 = 1b: Refers to ESPI_RESET# for PLTRST#.
+ */
+#define IT8XXX2_ESPI_VW_RESET_PLTRST           BIT(4)
 
 #define IT8XXX2_ESPI_UPSTREAM_ENABLE           BIT(7)
 #define IT8XXX2_ESPI_UPSTREAM_GO               BIT(6)
@@ -234,8 +241,8 @@ static const struct ec2i_t smfi_settings[] = {
 static void smfi_it8xxx2_init(const struct device *dev)
 {
 	const struct espi_it8xxx2_config *const config = dev->config;
-	struct flash_it8xxx2_regs *const smfi_reg =
-		(struct flash_it8xxx2_regs *)config->base_smfi;
+	struct smfi_it8xxx2_regs *const smfi_reg =
+		(struct smfi_it8xxx2_regs *)config->base_smfi;
 	struct gctrl_it8xxx2_regs *const gctrl = ESPI_IT8XXX2_GET_GCTRL_BASE;
 	uint8_t h2ram_offset;
 
@@ -378,14 +385,14 @@ static void kbc_it8xxx2_ibf_isr(const struct device *dev)
 
 	/* KBC Input Buffer Full event */
 	kbc_evt->evt = HOST_KBC_EVT_IBF;
-	/* The data in KBC Input Buffer */
-	kbc_evt->data = kbc_reg->KBHIDIR;
 	/*
 	 * Indicates if the host sent a command or data.
 	 * 0 = data
 	 * 1 = Command.
 	 */
 	kbc_evt->type = !!(kbc_reg->KBHISR & KBC_KBHISR_A2_ADDR);
+	/* The data in KBC Input Buffer */
+	kbc_evt->data = kbc_reg->KBHIDIR;
 
 	espi_send_callbacks(&data->callbacks, dev, evt);
 }
@@ -797,6 +804,9 @@ static int espi_it8xxx2_read_lpc_request(const struct device *dev,
 		case ECUSTOM_HOST_CMD_GET_PARAM_MEMORY:
 			*data = (uint32_t)&h2ram_pool[
 				CONFIG_ESPI_PERIPHERAL_HOST_CMD_PARAM_PORT_NUM];
+			break;
+		case ECUSTOM_HOST_CMD_GET_PARAM_MEMORY_SIZE:
+			*data = CONFIG_ESPI_IT8XXX2_HC_H2RAM_SIZE;
 			break;
 		default:
 			return -EINVAL;
@@ -1790,11 +1800,12 @@ void espi_it8xxx2_espi_reset_isr(const struct device *port,
 #define ESPI_IT8XXX2_ESPI_RESET_PIN  2
 static void espi_it8xxx2_enable_reset(void)
 {
+	struct gpio_it8xxx2_regs *const gpio_regs = GPIO_IT8XXX2_REG_BASE;
 	static struct gpio_callback espi_reset_cb;
 
 	/* eSPI reset is enabled on GPD2 */
-	IT8XXX2_GPIO_GCR =
-		(IT8XXX2_GPIO_GCR & ~IT8XXX2_GPIO_GCR_ESPI_RST_EN_MASK) |
+	gpio_regs->GPIO_GCR =
+		(gpio_regs->GPIO_GCR & ~IT8XXX2_GPIO_GCR_ESPI_RST_EN_MASK) |
 		(IT8XXX2_GPIO_GCR_ESPI_RST_D2 << IT8XXX2_GPIO_GCR_ESPI_RST_POS);
 	/* enable eSPI reset isr */
 	gpio_init_callback(&espi_reset_cb, espi_it8xxx2_espi_reset_isr,
@@ -1868,6 +1879,9 @@ static int espi_it8xxx2_init(const struct device *dev)
 	IRQ_CONNECT(IT8XXX2_ESPI_VW_IRQ, 0, espi_it8xxx2_vw_isr,
 			DEVICE_DT_INST_GET(0), 0);
 	irq_enable(IT8XXX2_ESPI_VW_IRQ);
+
+	/* Reset PLTRST# virtual wire signal during eSPI reset */
+	vw_reg->VWCTRL2 |= IT8XXX2_ESPI_VW_RESET_PLTRST;
 
 #ifdef CONFIG_ESPI_OOB_CHANNEL
 	espi_it8xxx2_oob_init(dev);

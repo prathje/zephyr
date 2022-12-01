@@ -6,8 +6,8 @@
 #ifndef ZEPHYR_INCLUDE_TRACING_TRACKING_H_
 #define ZEPHYR_INCLUDE_TRACING_TRACKING_H_
 
-#include <kernel.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 
 #if defined(CONFIG_TRACING_OBJECT_TRACKING) || defined(__DOXYGEN__)
 
@@ -63,7 +63,7 @@ extern struct k_queue *_track_list_k_queue;
 #define sys_port_track_k_mutex_init(mutex, ret) \
 	sys_track_k_mutex_init(mutex)
 #define sys_port_track_k_timer_stop(timer)
-#define sys_port_track_k_timer_start(timer)
+#define sys_port_track_k_timer_start(timer, duration, period)
 #define sys_port_track_k_timer_init(timer) \
 	sys_track_k_timer_init(timer)
 #define sys_port_track_k_queue_peek_tail(queue, ret)
@@ -117,7 +117,7 @@ void sys_track_k_queue_init(struct k_queue *queue);
 #define sys_port_track_k_work_init(work)
 #define sys_port_track_k_mutex_init(mutex, ret)
 #define sys_port_track_k_timer_stop(timer)
-#define sys_port_track_k_timer_start(timer)
+#define sys_port_track_k_timer_start(timer, duration, period)
 #define sys_port_track_k_timer_init(timer)
 #define sys_port_track_k_queue_peek_tail(queue, ret)
 #define sys_port_track_k_queue_peek_head(queue, ret)

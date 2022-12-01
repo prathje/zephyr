@@ -7,7 +7,7 @@
 #ifndef ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_MCHP_XEC_PINCTRL_H_
 #define ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_MCHP_XEC_PINCTRL_H_
 
-#include <dt-bindings/dt-util.h>
+#include <zephyr/dt-bindings/dt-util.h>
 
 #define MCHP_GPIO	0x0
 #define MCHP_AF0	0x0
@@ -22,6 +22,8 @@
 
 #define MCHP_XEC_PUPDR_POS		0
 #define MCHP_XEC_PUPDR_MASK		0x3
+#define MCHP_XEC_FUNC_INV_POS		2
+#define MCHP_XEC_FUNC_INV_MSK		0x4
 #define MCHP_XEC_OTYPER_POS		4
 #define MCHP_XEC_OTYPER_MASK		0x1
 #define MCHP_XEC_OTYPER_PUSHPULL	0

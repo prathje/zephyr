@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <zephyr/types.h>
 #include <stdbool.h>
-#include <sys/util.h>
-#include <toolchain.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,7 +69,7 @@ enum mb_display_mode {
 };
 
 /**
- * @def MB_IMAGE
+ *
  * @brief Generate an image object from a given array rows/columns.
  *
  * This helper takes an array of 5 rows, each consisting of 5 0/1 values which

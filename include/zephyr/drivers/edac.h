@@ -12,6 +12,8 @@
 #ifndef ZEPHYR_INCLUDE_DRIVERS_EDAC_H_
 #define ZEPHYR_INCLUDE_DRIVERS_EDAC_H_
 
+#include <errno.h>
+
 #include <sys/types.h>
 
 typedef void (*edac_notify_callback_f)(const struct device *dev, void *data);
@@ -377,7 +379,7 @@ static inline int edac_errors_uc_get(const struct device *dev)
 static inline int edac_notify_callback_set(const struct device *dev,
 					   edac_notify_callback_f cb)
 {
-	const struct edac_driver_api *api = dev->api;
+	const struct edac_driver_api *api = (const struct edac_driver_api *)dev->api;
 
 	if (api->notify_cb_set == NULL) {
 		return -ENOSYS;

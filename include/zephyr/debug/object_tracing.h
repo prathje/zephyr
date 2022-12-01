@@ -7,12 +7,10 @@
 #ifndef ZEPHYR_INCLUDE_THREAD_MONITOR_H_
 #define ZEPHYR_INCLUDE_THREAD_MONITOR_H_
 
-#include <kernel.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 
 /**
- * @def SYS_THREAD_MONITOR_HEAD
- *
  * @brief Head element of the thread monitor list.
  *
  * @details Access the head element of the thread monitor list.
@@ -21,8 +19,6 @@
 #define SYS_THREAD_MONITOR_HEAD ((struct k_thread *)(_kernel.threads))
 
 /**
- * @def SYS_THREAD_MONITOR_NEXT
- *
  * @brief Gets a thread node's next element.
  *
  * @details Given a node in a thread monitor list, gets the next

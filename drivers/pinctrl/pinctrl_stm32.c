@@ -6,8 +6,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <drivers/clock_control/stm32_clock_control.h>
-#include <drivers/pinctrl.h>
+#include <zephyr/drivers/clock_control/stm32_clock_control.h>
+#include <zephyr/drivers/pinctrl.h>
 #include <gpio/gpio_stm32.h>
 
 #include <stm32_ll_bus.h>
@@ -19,7 +19,7 @@
  *
  * Entries will be NULL if the GPIO port is not enabled.
  */
-static const struct device * const gpio_ports[] = {
+static const struct device *const gpio_ports[] = {
 	DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpioa)),
 	DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpiob)),
 	DEVICE_DT_GET_OR_NULL(DT_NODELABEL(gpioc)),

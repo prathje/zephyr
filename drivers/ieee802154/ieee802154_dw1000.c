@@ -4,28 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(dw1000, LOG_LEVEL_INF);
 
 #include <errno.h>
-#include <kernel.h>
-#include <arch/cpu.h>
-#include <debug/stack.h>
-#include <device.h>
-#include <init.h>
-#include <net/net_if.h>
-#include <net/net_pkt.h>
+#include <zephyr/kernel.h>
+#include <zephyr/arch/cpu.h>
+#include <zephyr/debug/stack.h>
+#include <zephyr/device.h>
+#include <zephyr/init.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_pkt.h>
 
-#include <sys/byteorder.h>
+#include <zephyr/sys/byteorder.h>
 #include <string.h>
-#include <random/rand32.h>
-#include <debug/stack.h>
+#include <zephyr/random/rand32.h>
+#include <zephyr/debug/stack.h>
 #include <math.h>
 
-#include <drivers/gpio.h>
-#include <drivers/spi.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/spi.h>
 
-#include <net/ieee802154_radio.h>
+#include <zephyr/net/ieee802154_radio.h>
 #include "ieee802154_dw1000_regs.h"
 #include <drivers/ieee802154/dw1000.h>
 
@@ -426,8 +426,8 @@ static inline void dwt_irq_handle_rx(const struct device *dev, uint32_t sys_stat
 		pkt_len -= DWT_FCS_LENGTH;
 	}
 
-	pkt = net_pkt_alloc_with_buffer(ctx->iface, pkt_len,
-					AF_UNSPEC, 0, K_NO_WAIT);
+	pkt = net_pkt_rx_alloc_with_buffer(ctx->iface, pkt_len,
+					   AF_UNSPEC, 0, K_NO_WAIT);
 	if (!pkt) {
 		LOG_ERR("No buf available");
 		goto rx_out_enable_rx;

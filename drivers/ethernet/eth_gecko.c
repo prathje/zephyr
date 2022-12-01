@@ -12,19 +12,20 @@
  * - no link monitoring through PHY interrupt
  */
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(eth_gecko, CONFIG_ETHERNET_LOG_LEVEL);
 
 #include <soc.h>
-#include <device.h>
-#include <init.h>
-#include <kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
 #include <errno.h>
-#include <net/net_pkt.h>
-#include <net/net_if.h>
-#include <net/ethernet.h>
+#include <zephyr/net/net_pkt.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/ethernet.h>
 #include <ethernet/eth_stats.h>
 #include <em_cmu.h>
+#include <zephyr/irq.h>
 
 #include "phy_gecko.h"
 #include "eth_gecko_priv.h"
@@ -519,7 +520,7 @@ static void eth_iface_init(struct net_if *iface)
 	dev_data->link_up = false;
 	ethernet_init(iface);
 
-	net_if_flag_set(iface, NET_IF_NO_AUTO_START);
+	net_if_carrier_off(iface);
 
 	/* Generate MAC address, possibly used for filtering */
 	generate_mac(dev_data->mac_addr);

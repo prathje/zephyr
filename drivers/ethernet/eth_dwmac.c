@@ -9,13 +9,13 @@
 
 #define LOG_MODULE_NAME dwmac_core
 #define LOG_LEVEL CONFIG_ETHERNET_LOG_LEVEL
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <sys/types.h>
-#include <zephyr.h>
-#include <cache.h>
-#include <net/ethernet.h>
+#include <zephyr/kernel.h>
+#include <zephyr/cache.h>
+#include <zephyr/net/ethernet.h>
 #include <ethernet/eth_stats.h>
 
 #include "eth_dwmac_priv.h"
@@ -359,7 +359,7 @@ static void dwmac_rx_refill_thread(void *arg1, void *unused1, void *unused2)
 
 		/* get a new fragment if the previous one was consumed */
 		if (!frag) {
-			frag = net_pkt_get_reserve_rx_data(K_FOREVER);
+			frag = net_pkt_get_reserve_rx_data(RX_FRAG_SIZE, K_FOREVER);
 			if (!frag) {
 				LOG_ERR("net_pkt_get_reserve_rx_data() returned NULL");
 				k_sem_give(&p->free_rx_descs);

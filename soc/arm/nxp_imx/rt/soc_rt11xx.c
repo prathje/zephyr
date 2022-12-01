@@ -4,23 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kernel.h>
-#include <device.h>
-#include <init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/init.h>
 #include <soc.h>
-#include <linker/sections.h>
-#include <linker/linker-defs.h>
+#include <zephyr/linker/sections.h>
+#include <zephyr/linker/linker-defs.h>
 #include <fsl_clock.h>
 #include <fsl_gpc.h>
 #include <fsl_pmu.h>
 #include <fsl_dcdc.h>
-#include <arch/cpu.h>
-#include <arch/arm/aarch32/cortex_m/cmsis.h>
+#include <zephyr/arch/cpu.h>
+#include <zephyr/arch/arm/aarch32/cortex_m/cmsis.h>
+#ifdef CONFIG_NXP_IMX_RT_BOOT_HEADER
 #include <fsl_flexspi_nor_boot.h>
-#include <dt-bindings/clock/imx_ccm_rev2.h>
+#endif
+#include <zephyr/dt-bindings/clock/imx_ccm_rev2.h>
 #if CONFIG_USB_DC_NXP_EHCI
 #include "usb_phy.h"
-#include "usb_dc_mcux.h"
+#include "usb.h"
 #endif
 
 #if CONFIG_USB_DC_NXP_EHCI /* USB PHY configuration */
@@ -368,6 +370,7 @@ static ALWAYS_INLINE void clock_init(void)
 
 
 #ifdef CONFIG_ETH_MCUX
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(enet), okay)
 	/* 50 MHz ENET clock */
 	rootCfg.mux = kCLOCK_ENET1_ClockRoot_MuxSysPll1Div2;
 	rootCfg.div = 10;
@@ -375,6 +378,19 @@ static ALWAYS_INLINE void clock_init(void)
 	/* Set ENET_REF_CLK as an output driven by ENET1_CLK_ROOT */
 	IOMUXC_GPR->GPR4 |= (IOMUXC_GPR_GPR4_ENET_REF_CLK_DIR(0x01U) |
 		IOMUXC_GPR_GPR4_ENET_TX_CLK_SEL(0x1U));
+#endif
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(enet1g), okay)
+	/*
+	 * 50 MHz clock for 10/100Mbit RMII PHY -
+	 * operate ENET1G just like ENET peripheral
+	 */
+	rootCfg.mux = kCLOCK_ENET2_ClockRoot_MuxSysPll1Div2;
+	rootCfg.div = 10;
+	CLOCK_SetRootClock(kCLOCK_Root_Enet2, &rootCfg);
+	/* Set ENET1G_REF_CLK as an output driven by ENET2_CLK_ROOT */
+	IOMUXC_GPR->GPR5 |= (IOMUXC_GPR_GPR5_ENET1G_REF_CLK_DIR(0x01U) |
+		IOMUXC_GPR_GPR5_ENET1G_TX_CLK_SEL(0x1U));
+#endif
 #endif
 
 #ifdef CONFIG_PTP_CLOCK_MCUX
@@ -406,6 +422,21 @@ static ALWAYS_INLINE void clock_init(void)
 #endif
 #endif
 
+#ifdef CONFIG_MCUX_ACMP
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(acmp1), okay)
+	/* Configure ACMP1 using Osc48MDiv2*/
+	rootCfg.mux = kCLOCK_ACMP_ClockRoot_MuxOscRc48MDiv2;
+	rootCfg.div = 1;
+	CLOCK_SetRootClock(kCLOCK_Root_Acmp, &rootCfg);
+#endif
+#endif
+
+#ifdef CONFIG_DISPLAY_MCUX_ELCDIF
+	rootCfg.mux = kCLOCK_LCDIF_ClockRoot_MuxSysPll2Out;
+	rootCfg.div = 9;
+	CLOCK_SetRootClock(kCLOCK_Root_Lcdif, &rootCfg);
+#endif
+
 #ifdef CONFIG_COUNTER_MCUX_GPT
 	rootCfg.mux = kCLOCK_GPT1_ClockRoot_MuxOscRc48MDiv2;
 	rootCfg.div = 1;
@@ -428,12 +459,22 @@ static ALWAYS_INLINE void clock_init(void)
 	USB_EhciPhyInit(kUSB_ControllerEhci1, CPU_XTAL_CLK_HZ, &usbPhyConfig);
 #endif
 
-#if DT_NODE_HAS_STATUS(DT_NODELABEL(usdhc1), okay) && CONFIG_DISK_DRIVER_SDMMC
+#if CONFIG_IMX_USDHC
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(usdhc1), okay)
 	/* Configure USDHC1 using  SysPll2Pfd2*/
 	rootCfg.mux = kCLOCK_USDHC1_ClockRoot_MuxSysPll2Pfd2;
 	rootCfg.div = 2;
 	CLOCK_SetRootClock(kCLOCK_Root_Usdhc1, &rootCfg);
 	CLOCK_EnableClock(kCLOCK_Usdhc1);
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(usdhc2), okay)
+	/* Configure USDHC2 using  SysPll2Pfd2*/
+	rootCfg.mux = kCLOCK_USDHC2_ClockRoot_MuxSysPll2Pfd2;
+	rootCfg.div = 2;
+	CLOCK_SetRootClock(kCLOCK_Root_Usdhc2, &rootCfg);
+	CLOCK_EnableClock(kCLOCK_Usdhc2);
+#endif
 #endif
 
 #if !(defined(CONFIG_CODE_FLEXSPI) || defined(CONFIG_CODE_FLEXSPI2)) && \
@@ -455,7 +496,7 @@ static ALWAYS_INLINE void clock_init(void)
 	GPC_CM_EnableCpuSleepHold(GPC_CPU_MODE_CTRL_0, false);
 	GPC_CM_EnableCpuSleepHold(GPC_CPU_MODE_CTRL_1, false);
 
-#ifdef CONFIG_SEGGER_RTT_SECTION_DTCM
+#if !defined(CONFIG_PM)
 	/* Enable the AHB clock while the CM7 is sleeping to allow debug access
 	 * to TCM
 	 */
@@ -490,6 +531,63 @@ void imxrt_audio_codec_pll_init(uint32_t clock_name, uint32_t clk_src,
 		return;
 	}
 }
+#endif
+
+#if CONFIG_MIPI_DSI
+void imxrt_pre_init_display_interface(void)
+{
+	/* elcdif output to MIPI DSI */
+	CLOCK_EnableClock(kCLOCK_Video_Mux);
+	VIDEO_MUX->VID_MUX_CTRL.CLR = VIDEO_MUX_VID_MUX_CTRL_MIPI_DSI_SEL_MASK;
+
+	/* Power on and isolation off. */
+	PGMC_BPC4->BPC_POWER_CTRL |= (PGMC_BPC_BPC_POWER_CTRL_PSW_ON_SOFT_MASK |
+				PGMC_BPC_BPC_POWER_CTRL_ISO_OFF_SOFT_MASK);
+
+	/* Assert MIPI reset. */
+	IOMUXC_GPR->GPR62 &= ~(IOMUXC_GPR_GPR62_MIPI_DSI_PCLK_SOFT_RESET_N_MASK |
+			IOMUXC_GPR_GPR62_MIPI_DSI_ESC_SOFT_RESET_N_MASK |
+			IOMUXC_GPR_GPR62_MIPI_DSI_BYTE_SOFT_RESET_N_MASK |
+			IOMUXC_GPR_GPR62_MIPI_DSI_DPI_SOFT_RESET_N_MASK);
+
+	/* setup clock */
+	const clock_root_config_t mipiEscClockConfig = {
+		.clockOff = false,
+		.mux = 4,
+		.div = 11,
+	};
+
+	CLOCK_SetRootClock(kCLOCK_Root_Mipi_Esc, &mipiEscClockConfig);
+
+	/* TX esc clock */
+	const clock_group_config_t mipiEscClockGroupConfig = {
+		.clockOff = false,
+		.resetDiv = 2,
+		.div0 = 2,
+	};
+
+	CLOCK_SetGroupConfig(kCLOCK_Group_MipiDsi, &mipiEscClockGroupConfig);
+
+	const clock_root_config_t mipiDphyRefClockConfig = {
+		.clockOff = false,
+		.mux = 1,
+		.div = 1,
+	};
+
+	CLOCK_SetRootClock(kCLOCK_Root_Mipi_Ref, &mipiDphyRefClockConfig);
+
+	/* Deassert PCLK and ESC reset. */
+	IOMUXC_GPR->GPR62 |= (IOMUXC_GPR_GPR62_MIPI_DSI_PCLK_SOFT_RESET_N_MASK |
+			IOMUXC_GPR_GPR62_MIPI_DSI_ESC_SOFT_RESET_N_MASK);
+}
+
+void imxrt_post_init_display_interface(void)
+{
+	/* deassert BYTE and DBI reset */
+	IOMUXC_GPR->GPR62 |= (IOMUXC_GPR_GPR62_MIPI_DSI_BYTE_SOFT_RESET_N_MASK |
+			IOMUXC_GPR_GPR62_MIPI_DSI_DPI_SOFT_RESET_N_MASK);
+}
+
 #endif
 
 /**

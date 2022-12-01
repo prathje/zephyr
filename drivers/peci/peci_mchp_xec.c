@@ -7,17 +7,19 @@
 #define DT_DRV_COMPAT microchip_xec_peci
 
 #include <errno.h>
-#include <device.h>
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #ifdef CONFIG_SOC_SERIES_MEC172X
-#include <drivers/clock_control/mchp_xec_clock_control.h>
-#include <drivers/interrupt_controller/intc_mchp_xec_ecia.h>
+#include <zephyr/drivers/clock_control/mchp_xec_clock_control.h>
+#include <zephyr/drivers/interrupt_controller/intc_mchp_xec_ecia.h>
 #endif
-#include <drivers/peci.h>
+#include <zephyr/drivers/peci.h>
 #ifdef CONFIG_PINCTRL
-#include <drivers/pinctrl.h>
+#include <zephyr/drivers/pinctrl.h>
 #endif
 #include <soc.h>
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/irq.h>
 LOG_MODULE_REGISTER(peci_mchp_xec, CONFIG_PECI_LOG_LEVEL);
 
 /* Maximum PECI core clock is the main clock 48Mhz */
@@ -313,6 +315,12 @@ static int peci_xec_read(const struct device *dev, struct peci_msg *msg)
 			/* Get write block FCS just for debug */
 			tx_fcs = regs->RD_DATA;
 			LOG_DBG("TX FCS %x", tx_fcs);
+
+			/* If a Ping is done, write Tx fcs to rx buffer*/
+			if (msg->cmd_code == PECI_CMD_PING) {
+				rx_buf->buf[0] = tx_fcs;
+				break;
+			}
 		} else if (i == (rx_buf->len + 1)) {
 			/* Get read block FCS, but don't count it */
 			rx_buf->buf[i-1] = regs->RD_DATA;
@@ -353,8 +361,9 @@ static int peci_xec_transfer(const struct device *dev, struct peci_msg *msg)
 
 	/* If a PECI transmission is successful, it may or not involve
 	 * a read operation, check if transaction expects a response
+	 * Also perform a read when PECI cmd is Ping to get Write FCS
 	 */
-	if (msg->rx_buffer.len) {
+	if (msg->rx_buffer.len || (msg->cmd_code == PECI_CMD_PING)) {
 		ret = peci_xec_read(dev, msg);
 		if (ret) {
 			return ret;
@@ -435,6 +444,7 @@ static int peci_xec_init(const struct device *dev)
 {
 	const struct peci_xec_config * const cfg = dev->config;
 	struct peci_regs * const regs = cfg->regs;
+	struct ecs_regs * const ecs_regs = (struct ecs_regs *)(DT_REG_ADDR(DT_NODELABEL(ecs)));
 
 #ifdef CONFIG_PINCTRL
 	int ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
@@ -450,6 +460,8 @@ static int peci_xec_init(const struct device *dev)
 #endif
 
 	peci_clr_slp_en(dev);
+
+	ecs_regs->PECI_DIS = 0x00u;
 
 	/* Reset PECI interface */
 	regs->CONTROL |= MCHP_PECI_CTRL_RST;

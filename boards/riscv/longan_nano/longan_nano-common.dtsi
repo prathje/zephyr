@@ -10,6 +10,7 @@
 		zephyr,shell-uart = &usart0;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
+		sdhc0 = &sdhc0;
 	};
 
 	leds {
@@ -58,6 +59,7 @@
 		pwm-led0 = &pwm_led_green;
 		pwm-led1 = &pwm_led_blue;
 		sw0 = &button_boot0;
+		watchdog0 = &fwdgt;
 	};
 };
 
@@ -95,4 +97,27 @@
 	status = "okay";
 	pinctrl-0 = <&dac_default>;
 	pinctrl-names = "default";
+};
+
+&spi1 {
+	status = "okay";
+	pinctrl-0 = <&spi1_default>;
+	pinctrl-names = "default";
+
+	cs-gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
+
+	sdhc0: sdhc@0 {
+		compatible = "zephyr,sdhc-spi-slot";
+		reg = <0>;
+		status = "okay";
+		spi-max-frequency = <24000000>;
+		mmc {
+			compatible = "zephyr,sdmmc-disk";
+			status = "okay";
+		};
+	};
+};
+
+&fwdgt {
+	status = "okay";
 };

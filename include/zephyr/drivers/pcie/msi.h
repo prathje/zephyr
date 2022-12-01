@@ -7,11 +7,11 @@
 #ifndef ZEPHYR_INCLUDE_DRIVERS_PCIE_MSI_H_
 #define ZEPHYR_INCLUDE_DRIVERS_PCIE_MSI_H_
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <zephyr/types.h>
 #include <stdbool.h>
 
-#include <drivers/pcie/pcie.h>
+#include <zephyr/drivers/pcie/pcie.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +39,7 @@ struct msix_vector {
 	uint32_t msg_up_addr;
 	uint32_t msg_data;
 	uint32_t vector_ctrl;
-};
+} __packed;
 
 struct msi_vector {
 	pcie_bdf_t bdf;

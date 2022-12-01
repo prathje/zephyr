@@ -24,6 +24,8 @@ OS management group defines following commands:
     +-------------------+-----------------------------------------------+
     | ``5``             | System reset                                  |
     +-------------------+-----------------------------------------------+
+    | ``6``             | MCUMGR parameters                             |
+    +-------------------+-----------------------------------------------+
 
 Echo command
 ************
@@ -406,8 +408,14 @@ where:
 System reset
 ************
 
-Performs reset of system. The device should issue response before resetting so that
-the SMP client could receive information that the command has been accepted.
+Performs reset of system. The device should issue response before resetting so
+that the SMP client could receive information that the command has been
+accepted. By default, this command is accepted in all conditions, however if
+the :kconfig:option:`CONFIG_MCUMGR_GRP_OS_OS_RESET_HOOK` is enabled and an
+application registers a callback, the callback will be called when this command
+is issued and can be used to perform any necessary tidy operations prior to the
+module rebooting, or to reject the reset request outright altogether with an
+error response. For details on this functionality, see `ref:`mcumgr_callbacks`.
 
 System reset request
 ====================
@@ -423,7 +431,25 @@ System reset request header fields:
     | ``2``  | ``0``        |  ``5``         |
     +--------+--------------+----------------+
 
-The command sends empty CBOR map as data.
+Normally the command sends empty CBOR map as data, but if previous
+reset attempt has been responded with "rc" code equal ``10`` (busy),
+then following map may be send to force the reset:
+
+.. code-block:: none
+
+    {
+        (opt)"force"       : (int)
+    }
+
+where:
+
+.. table::
+    :align: center
+
+    +-----------------------+---------------------------------------------------+
+    | "force"               | Force reset if value > 0, optional if 0.          |
+    +-----------------------+---------------------------------------------------+
+
 
 System reset response
 =====================
@@ -452,6 +478,66 @@ where:
 .. table::
     :align: center
 
+    +-----------------------+---------------------------------------------------+
+    | "rc"                  | :ref:`mcumgr_smp_protocol_status_codes`;          |
+    |                       | may not appear if 0                               |
+    +-----------------------+---------------------------------------------------+
+
+MCUMGR Parameters
+*****************
+
+Used to obtain parameters of mcumgr library.
+
+MCUMGR Parameters Request
+=========================
+
+MCUMGR parameters request header fields:
+
+.. table::
+    :align: center
+
+    +--------+--------------+----------------+
+    | ``OP`` | ``Group ID`` | ``Command ID`` |
+    +========+==============+================+
+    | ``0``  | ``0``        |  ``6``         |
+    +--------+--------------+----------------+
+
+The command sends empty CBOR map as data.
+
+MCUMGR Parameters Response
+==========================
+
+MCUMGR parameters response header fields
+
+.. table::
+    :align: center
+
+    +--------+--------------+----------------+
+    | ``OP`` | ``Group ID`` | ``Command ID`` |
+    +========+==============+================+
+    | ``2``  | ``0``        |  ``6``         |
+    +--------+--------------+----------------+
+
+CBOR data of response:
+
+.. code-block:: none
+
+    {
+        (str)"buf_size"     : (uint)
+        (str)"buf_count"    : (uint)
+        (opt,str)"rc"       : (int)
+    }
+
+where:
+
+.. table::
+    :align: center
+
+    +-----------------------+---------------------------------------------------+
+    | "buf_size"            | Single SMP buffer size, this includes SMP header  |
+    |                       | and CBOR payload                                  |
+    +-----------------------+---------------------------------------------------+
+    | "buf_count"           | Number of SMP buffers supported                   |
     +-----------------------+---------------------------------------------------+
     | "rc"                  | :ref:`mcumgr_smp_protocol_status_codes`;          |
     |                       | may not appear if 0                               |

@@ -194,7 +194,7 @@ A device-specific API definition typically looks like this:
 
 .. code-block:: C
 
-   #include <drivers/subsystem.h>
+   #include <zephyr/drivers/subsystem.h>
 
    /* When extensions need not be invoked from user mode threads */
    int specific_do_that(const struct device *dev, int foo);
@@ -235,7 +235,7 @@ implementation of both the subsystem API and the specific APIs:
 
    #ifdef CONFIG_USERSPACE
 
-   #include <syscall_handler.h>
+   #include <zephyr/syscall_handler.h>
 
    int z_vrfy_specific_from_user(const struct device *dev, int bar)
    {
@@ -342,6 +342,13 @@ the use of kernel services. :c:func:`DEVICE_DEFINE()` and related APIs
 allow the user to specify at what time during the boot sequence the init
 function will be executed. Any driver will specify one of four
 initialization levels:
+
+``EARLY``
+        Used very early in the boot process, right after entering the C domain
+        (``z_cstart()``). This can be used in architectures and SoCs that extend
+        or implement architecture code and use drivers or system services that
+        have to be initialized before the Kernel calls any architecture specific
+        initialization code.
 
 ``PRE_KERNEL_1``
         Used for devices that have no dependencies, such as those that rely
@@ -529,6 +536,37 @@ For example:
       ...
    }
 
+Device Model Drivers with multiple MMIO regions in the same DT node
+===================================================================
+
+Some drivers may have multiple MMIO regions defined into the same DT device
+node using the ``reg-names`` property to differentiate them, for example:
+
+.. code-block:: devicetree
+
+   /dts-v1/;
+
+   / {
+           a-driver@40000000 {
+                   reg = <0x40000000 0x1000>,
+                         <0x40001000 0x1000>;
+                   reg-names = "corge", "grault";
+           };
+   };
+
+This can be managed as seen in the previous section but this time using the
+``DEVICE_MMIO_NAMED_ROM_INIT_BY_NAME`` macro instead. So the only difference
+would be in the driver config struct:
+
+.. code-block:: C
+
+   const static struct my_driver_config my_driver_config_0 = {
+      ...
+      DEVICE_MMIO_NAMED_ROM_INIT_BY_NAME(corge, DT_DRV_INST(...)),
+      DEVICE_MMIO_NAMED_ROM_INIT_BY_NAME(grault, DT_DRV_INST(...)),
+      ...
+   }
+
 Drivers that do not use Zephyr Device Model
 ===========================================
 
@@ -568,7 +606,7 @@ may be used directly:
    void some_init_code(...)
    {
       ...
-      struct pcie_mbar mbar;
+      struct pcie_bar mbar;
       bool bar_found = pcie_get_mbar(bdf, index, &mbar);
 
       device_map(DEVICE_MMIO_RAM_PTR(dev), mbar.phys_addr, mbar.size, K_MEM_CACHE_NONE);

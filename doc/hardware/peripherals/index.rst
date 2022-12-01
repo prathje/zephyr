@@ -9,6 +9,7 @@ Peripherals
    adc.rst
    audio/index.rst
    canbus/index.rst
+   coredump.rst
    counter.rst
    clock_control.rst
    dac.rst
@@ -19,11 +20,13 @@ Peripherals
    eeprom.rst
    entropy.rst
    flash.rst
+   fuel_gauge.rst
    gna.rst
    gpio.rst
    hwinfo.rst
-   i2c_eeprom_slave.rst
+   i2c_eeprom_target.rst
    i2c.rst
+   i3c.rst
    ipm.rst
    kscan.rst
    led.rst
@@ -35,11 +38,15 @@ Peripherals
    regulators.rst
    reset.rst
    rtc.rst
+   sdhc.rst
    sensor.rst
    spi.rst
    tcpc.rst
    uart.rst
+   usbc_vbus.rst
    mdio.rst
    watchdog.rst
    video.rst
    espi.rst
+   mipi_dsi.rst
+   w1.rst

@@ -19,13 +19,13 @@
  * @{
  */
 
-#include <device.h>
+#include <zephyr/device.h>
 #include <stddef.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <zephyr/types.h>
 
-#include <drivers/video-controls.h>
+#include <zephyr/drivers/video-controls.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -423,7 +423,7 @@ static inline int video_stream_stop(const struct device *dev)
 		(const struct video_driver_api *)dev->api;
 	int ret;
 
-	if (api->stream_stop) {
+	if (api->stream_stop == NULL) {
 		return -ENOSYS;
 	}
 

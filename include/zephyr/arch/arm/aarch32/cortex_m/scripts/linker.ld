@@ -11,21 +11,20 @@
  * Linker script for the Cortex-M platforms.
  */
 
-#include <linker/sections.h>
-#include <devicetree.h>
+#include <zephyr/linker/sections.h>
+#include <zephyr/devicetree.h>
 
-#include <linker/devicetree_regions.h>
-#include <linker/linker-defs.h>
-#include <linker/linker-tool.h>
+#include <zephyr/linker/devicetree_regions.h>
+#include <zephyr/linker/linker-defs.h>
+#include <zephyr/linker/linker-tool.h>
 
 /* physical address of RAM */
 #ifdef CONFIG_XIP
 #define ROMABLE_REGION FLASH
-#define RAMABLE_REGION SRAM
 #else
-#define ROMABLE_REGION SRAM
-#define RAMABLE_REGION SRAM
+#define ROMABLE_REGION RAM
 #endif
+#define RAMABLE_REGION RAM
 
 #if !defined(CONFIG_XIP) && (CONFIG_FLASH_SIZE == 0)
 #define ROM_ADDR RAM_ADDR
@@ -79,7 +78,7 @@ _region_min_align = 4;
 MEMORY
     {
     FLASH (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
-    SRAM  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
+    RAM   (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
     LINKER_DT_REGIONS()
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST (wx) : ORIGIN = 0xFFFFF7FF, LENGTH = 2K
@@ -90,7 +89,7 @@ ENTRY(CONFIG_KERNEL_ENTRY)
 SECTIONS
     {
 
-#include <linker/rel-sections.ld>
+#include <zephyr/linker/rel-sections.ld>
 
     /*
      * .plt and .iplt are here according to 'arm-zephyr-elf-ld --verbose',
@@ -131,7 +130,7 @@ SECTIONS
 	{
 	__text_region_start = .;
 
-#include <linker/kobject-text.ld>
+#include <zephyr/linker/kobject-text.ld>
 
 	*(.text)
 	*(".text.*")
@@ -143,6 +142,7 @@ SECTIONS
 	 * after .gnu.linkonce.t.*
 	 */
 	*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)
+	. = ALIGN(4);
 
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
@@ -175,8 +175,8 @@ SECTIONS
 
 	__rodata_region_start = .;
 
-#include <linker/common-rom.ld>
-#include <linker/thread-local-storage.ld>
+#include <zephyr/linker/common-rom.ld>
+#include <zephyr/linker/thread-local-storage.ld>
 
     SECTION_PROLOGUE(_RODATA_SECTION_NAME,,)
 	{
@@ -189,7 +189,7 @@ SECTIONS
  */
 #include <snippets-rodata.ld>
 
-#include <linker/kobject-rom.ld>
+#include <zephyr/linker/kobject-rom.ld>
 
 	/*
 	 * For XIP images, in order to avoid the situation when __data_rom_start
@@ -204,11 +204,11 @@ SECTIONS
 	. = ALIGN(4);
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
-#include <linker/cplusplus-rom.ld>
+#include <zephyr/linker/cplusplus-rom.ld>
 
 	__rodata_region_end = .;
-	MPU_ALIGN(__rodata_region_end -__rom_region_start);
-	__rom_region_end = .;
+	MPU_ALIGN(__rodata_region_end - ADDR(rom_start));
+	__rom_region_end = __rom_region_start + . - ADDR(rom_start);
 
     GROUP_END(ROMABLE_REGION)
 
@@ -226,7 +226,7 @@ SECTIONS
     GROUP_START(RAMABLE_REGION)
 
 	. = RAM_ADDR;
-	/* Align the start of image SRAM with the
+	/* Align the start of image RAM with the
 	 * minimum granularity required by MPU.
 	 */
 	. = ALIGN(_region_min_align);
@@ -272,7 +272,7 @@ SECTIONS
 	__bss_end = ALIGN(4);
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 
-#include <linker/common-noinit.ld>
+#include <zephyr/linker/common-noinit.ld>
 
 #endif  /* CONFIG_USERSPACE */
 
@@ -302,10 +302,10 @@ SECTIONS
 
     __data_region_load_start = LOADADDR(_DATA_SECTION_NAME);
 
-#include <linker/common-ram.ld>
-#include <linker/kobject-data.ld>
+#include <zephyr/linker/common-ram.ld>
+#include <zephyr/linker/kobject-data.ld>
 
-#include <linker/cplusplus-ram.ld>
+#include <zephyr/linker/cplusplus-ram.ld>
 
 /* Located in generated directory. This file is populated by the
  * zephyr_linker_sources() Cmake function.
@@ -356,7 +356,7 @@ SECTIONS
  */
 #include <snippets-noinit.ld>
 
-        } GROUP_LINK_IN(RAMABLE_REGION)
+        } GROUP_NOLOAD_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 #endif /* CONFIG_USERSPACE */
 
     /* Define linker symbols */
@@ -426,7 +426,7 @@ GROUP_END(DTCM)
  */
 #include <snippets-sections.ld>
 
-#include <linker/debug-sections.ld>
+#include <zephyr/linker/debug-sections.ld>
 
     /DISCARD/ : { *(.note.GNU-stack) }
 
@@ -440,12 +440,17 @@ GROUP_END(DTCM)
     LINKER_DT_SECTIONS()
 
 /* Must be last in romable region */
-SECTION_PROLOGUE(.last_section,(NOLOAD),)
+SECTION_PROLOGUE(.last_section,,)
 {
+#ifdef CONFIG_LINKER_LAST_SECTION_ID
+  /* Fill last section with a word to ensure location counter and actual rom
+   * region data usage match. */
+  LONG(CONFIG_LINKER_LAST_SECTION_ID_PATTERN)
+#endif
 } GROUP_LINK_IN(ROMABLE_REGION)
 
 /* To provide the image size as a const expression,
  * calculate this value here. */
-_flash_used = LOADADDR(.last_section) - __rom_region_start;
+_flash_used = LOADADDR(.last_section) + SIZEOF(.last_section) - __rom_region_start;
 
     }

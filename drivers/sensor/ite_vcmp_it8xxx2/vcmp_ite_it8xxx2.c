@@ -6,18 +6,18 @@
 
 #define DT_DRV_COMPAT ite_it8xxx2_vcmp
 
-#include <device.h>
-#include <devicetree/io-channels.h>
-#include <drivers/adc.h>
-#include <drivers/sensor.h>
-#include <drivers/sensor/it8xxx2_vcmp.h>
-#include <dt-bindings/dt-util.h>
-#include <dt-bindings/sensor/it8xxx2_vcmp.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree/io-channels.h>
+#include <zephyr/drivers/adc.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor/it8xxx2_vcmp.h>
+#include <zephyr/dt-bindings/dt-util.h>
+#include <zephyr/dt-bindings/sensor/it8xxx2_vcmp.h>
 #include <errno.h>
 #include <soc.h>
 #include <soc_dt.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(vcmp_ite_it8xxx2, CONFIG_SENSOR_LOG_LEVEL);
 
 #define VCMP_REG_MASK		0x7
@@ -368,7 +368,7 @@ static const struct sensor_driver_api vcmp_ite_it8xxx2_api = {
 		.adc_ch_cfg.channel_id = (uint8_t)DT_INST_IO_CHANNELS_INPUT(inst),	\
 	};										\
 											\
-	DEVICE_DT_INST_DEFINE(inst,							\
+	SENSOR_DEVICE_DT_INST_DEFINE(inst,						\
 			      vcmp_it8xxx2_init,					\
 			      NULL,							\
 			      &vcmp_it8xxx2_data_##inst,				\

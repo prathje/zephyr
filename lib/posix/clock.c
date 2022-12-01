@@ -3,12 +3,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <errno.h>
-#include <posix/time.h>
-#include <posix/sys/time.h>
-#include <syscall_handler.h>
-#include <spinlock.h>
+#include <zephyr/posix/time.h>
+#include <zephyr/posix/sys/time.h>
+#include <zephyr/syscall_handler.h>
+#include <zephyr/spinlock.h>
 
 /*
  * `k_uptime_get` returns a timestamp based on an always increasing
@@ -111,7 +111,7 @@ int clock_settime(clockid_t clock_id, const struct timespec *tp)
  *
  * See IEEE 1003.1
  */
-int gettimeofday(struct timeval *tv, const void *tz)
+int gettimeofday(struct timeval *tv, void *tz)
 {
 	struct timespec ts;
 	int res;

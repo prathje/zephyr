@@ -8,15 +8,15 @@
 #ifndef ZEPHYR_INCLUDE_BLUETOOTH_HCI_H_
 #define ZEPHYR_INCLUDE_BLUETOOTH_HCI_H_
 
-#include <toolchain.h>
+#include <zephyr/toolchain.h>
 #include <zephyr/types.h>
 #include <stdbool.h>
 #include <string.h>
-#include <sys/util.h>
-#include <net/buf.h>
-#include <bluetooth/addr.h>
-#include <bluetooth/hci_err.h>
-#include <bluetooth/conn.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/net/buf.h>
+#include <zephyr/bluetooth/addr.h>
+#include <zephyr/bluetooth/hci_err.h>
+#include <zephyr/bluetooth/conn.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -174,52 +174,66 @@ struct bt_hci_cmd_hdr {
 #define BT_LE_FEAT_TEST(feat, n)                (feat[(n) >> 3] & \
 						 BIT((n) & 7))
 
-#define BT_FEAT_LE_ENCR(feat)                   BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_ENC)
-#define BT_FEAT_LE_CONN_PARAM_REQ_PROC(feat)    BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CONN_PARAM_REQ)
-#define BT_FEAT_LE_PER_INIT_FEAT_XCHG(feat)     BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PER_INIT_FEAT_XCHG)
-#define BT_FEAT_LE_DLE(feat)                    BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_DLE)
-#define BT_FEAT_LE_PHY_2M(feat)                 BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PHY_2M)
-#define BT_FEAT_LE_PHY_CODED(feat)              BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PHY_CODED)
-#define BT_FEAT_LE_PRIVACY(feat)                BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PRIVACY)
-#define BT_FEAT_LE_EXT_ADV(feat)                BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_EXT_ADV)
-#define BT_FEAT_LE_EXT_PER_ADV(feat)            BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PER_ADV)
-#define BT_FEAT_LE_CONNECTION_CTE_REQ(feat)     BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CONN_CTE_REQ)
-#define BT_FEAT_LE_CONNECTION_CTE_RESP(feat)    BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CONN_CTE_RESP)
-#define BT_FEAT_LE_CONNECTIONLESS_CTE_TX(feat)  BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CONNECTIONLESS_CTE_TX)
-#define BT_FEAT_LE_CONNECTIONLESS_CTE_RX(feat)  BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CONNECTIONLESS_CTE_RX)
-#define BT_FEAT_LE_ANT_SWITCH_TX_AOD(feat)      BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_ANT_SWITCH_TX_AOD)
-#define BT_FEAT_LE_ANT_SWITCH_RX_AOA(feat)      BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_ANT_SWITCH_RX_AOA)
-#define BT_FEAT_LE_RX_CTE(feat)                 BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_RX_CTE)
-#define BT_FEAT_LE_PAST_SEND(feat)              BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PAST_SEND)
-#define BT_FEAT_LE_PAST_RECV(feat)              BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_PAST_RECV)
-#define BT_FEAT_LE_CIS_CENTRAL(feat)            BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CIS_CENTRAL)
-#define BT_FEAT_LE_CIS_PERIPHERAL(feat)         BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_CIS_PERIPHERAL)
-#define BT_FEAT_LE_ISO_BROADCASTER(feat)        BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_ISO_BROADCASTER)
-#define BT_FEAT_LE_SYNC_RECEIVER(feat)          BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_SYNC_RECEIVER)
-#define BT_FEAT_LE_ISO_CHANNELS(feat)           BT_LE_FEAT_TEST(feat, \
-						BT_LE_FEAT_BIT_ISO_CHANNELS)
+#define BT_FEAT_LE_ENCR(feat)                     BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_ENC)
+#define BT_FEAT_LE_CONN_PARAM_REQ_PROC(feat)      BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONN_PARAM_REQ)
+#define BT_FEAT_LE_PER_INIT_FEAT_XCHG(feat)       BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PER_INIT_FEAT_XCHG)
+#define BT_FEAT_LE_DLE(feat)                      BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_DLE)
+#define BT_FEAT_LE_PHY_2M(feat)                   BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PHY_2M)
+#define BT_FEAT_LE_PHY_CODED(feat)                BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PHY_CODED)
+#define BT_FEAT_LE_PRIVACY(feat)                  BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PRIVACY)
+#define BT_FEAT_LE_EXT_ADV(feat)                  BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_EXT_ADV)
+#define BT_FEAT_LE_EXT_PER_ADV(feat)              BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PER_ADV)
+#define BT_FEAT_LE_CONNECTION_CTE_REQ(feat)       BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONN_CTE_REQ)
+#define BT_FEAT_LE_CONNECTION_CTE_RESP(feat)      BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONN_CTE_RESP)
+#define BT_FEAT_LE_CONNECTIONLESS_CTE_TX(feat)    BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONNECTIONLESS_CTE_TX)
+#define BT_FEAT_LE_CONNECTIONLESS_CTE_RX(feat)    BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONNECTIONLESS_CTE_RX)
+#define BT_FEAT_LE_ANT_SWITCH_TX_AOD(feat)        BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_ANT_SWITCH_TX_AOD)
+#define BT_FEAT_LE_ANT_SWITCH_RX_AOA(feat)        BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_ANT_SWITCH_RX_AOA)
+#define BT_FEAT_LE_RX_CTE(feat)                   BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_RX_CTE)
+#define BT_FEAT_LE_PAST_SEND(feat)                BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PAST_SEND)
+#define BT_FEAT_LE_PAST_RECV(feat)                BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PAST_RECV)
+#define BT_FEAT_LE_CIS_CENTRAL(feat)              BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CIS_CENTRAL)
+#define BT_FEAT_LE_CIS_PERIPHERAL(feat)           BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CIS_PERIPHERAL)
+#define BT_FEAT_LE_ISO_BROADCASTER(feat)          BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_ISO_BROADCASTER)
+#define BT_FEAT_LE_SYNC_RECEIVER(feat)            BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_SYNC_RECEIVER)
+#define BT_FEAT_LE_ISO_CHANNELS(feat)             BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_ISO_CHANNELS)
+#define BT_FEAT_LE_PWR_CTRL_REQ(feat)             BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PWR_CTRL_REQ)
+#define BT_FEAT_LE_PWR_CHG_IND(feat)              BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PWR_CHG_IND)
+#define BT_FEAT_LE_PATH_LOSS_MONITOR(feat)        BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PATH_LOSS_MONITOR)
+#define BT_FEAT_LE_PER_ADV_ADI_SUPP(feat)         BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_PER_ADV_ADI_SUPP)
+#define BT_FEAT_LE_CONN_SUBRATING(feat)           BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONN_SUBRATING)
+#define BT_FEAT_LE_CONN_SUBRATING_HOST_SUPP(feat) BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CONN_SUBRATING_HOST_SUPP)
+#define BT_FEAT_LE_CHANNEL_CLASSIFICATION(feat)   BT_LE_FEAT_TEST(feat, \
+						  BT_LE_FEAT_BIT_CHANNEL_CLASSIFICATION)
 
 #define BT_FEAT_LE_CIS(feat)            (BT_FEAT_LE_CIS_CENTRAL(feat) | \
 					BT_FEAT_LE_CIS_PERIPHERAL(feat))
@@ -492,6 +506,21 @@ struct bt_hci_cp_set_event_mask {
 #define BT_HCI_OP_WRITE_LOCAL_NAME              BT_OP(BT_OGF_BASEBAND, 0x0013)
 struct bt_hci_write_local_name {
 	uint8_t local_name[248];
+} __packed;
+
+#define BT_HCI_OP_READ_CONN_ACCEPT_TIMEOUT      BT_OP(BT_OGF_BASEBAND, 0x0015)
+struct bt_hci_rp_read_conn_accept_timeout {
+	uint8_t  status;
+	uint16_t conn_accept_timeout;
+} __packed;
+
+#define BT_HCI_OP_WRITE_CONN_ACCEPT_TIMEOUT     BT_OP(BT_OGF_BASEBAND, 0x0016)
+struct bt_hci_cp_write_conn_accept_timeout {
+	uint16_t conn_accept_timeout;
+} __packed;
+
+struct bt_hci_rp_write_conn_accept_timeout {
+	uint8_t  status;
 } __packed;
 
 #define BT_HCI_OP_WRITE_PAGE_TIMEOUT            BT_OP(BT_OGF_BASEBAND, 0x0018)
@@ -1278,6 +1307,9 @@ struct bt_hci_cp_le_set_adv_set_random_addr {
 #define BT_HCI_LE_ADV_PROP_ANON                 BIT(5)
 #define BT_HCI_LE_ADV_PROP_TX_POWER             BIT(6)
 
+#define BT_HCI_LE_PRIM_ADV_INTERVAL_MIN         0x000020
+#define BT_HCI_LE_PRIM_ADV_INTERVAL_MAX         0xFFFFFF
+
 #define BT_HCI_LE_ADV_SCAN_REQ_ENABLE  1
 #define BT_HCI_LE_ADV_SCAN_REQ_DISABLE 0
 
@@ -1326,7 +1358,7 @@ struct bt_hci_cp_le_set_ext_adv_data {
 	uint8_t  op;
 	uint8_t  frag_pref;
 	uint8_t  len;
-	uint8_t  data[251];
+	uint8_t  data[0];
 } __packed;
 
 #define BT_HCI_OP_LE_SET_EXT_SCAN_RSP_DATA      BT_OP(BT_OGF_LE, 0x0038)
@@ -1335,7 +1367,7 @@ struct bt_hci_cp_le_set_ext_scan_rsp_data {
 	uint8_t  op;
 	uint8_t  frag_pref;
 	uint8_t  len;
-	uint8_t  data[251];
+	uint8_t  data[0];
 } __packed;
 
 #define BT_HCI_OP_LE_SET_EXT_ADV_ENABLE         BT_OP(BT_OGF_LE, 0x0039)
@@ -1370,6 +1402,9 @@ struct bt_hci_cp_le_remove_adv_set {
 
 #define BT_HCI_OP_CLEAR_ADV_SETS                BT_OP(BT_OGF_LE, 0x003d)
 
+#define BT_HCI_LE_PER_ADV_INTERVAL_MIN          0x0006
+#define BT_HCI_LE_PER_ADV_INTERVAL_MAX          0xFFFF
+
 #define BT_HCI_OP_LE_SET_PER_ADV_PARAM          BT_OP(BT_OGF_LE, 0x003e)
 struct bt_hci_cp_le_set_per_adv_param {
 	uint8_t  handle;
@@ -1390,7 +1425,7 @@ struct bt_hci_cp_le_set_per_adv_data {
 	uint8_t  handle;
 	uint8_t  op;
 	uint8_t  len;
-	uint8_t  data[BT_HCI_LE_PER_ADV_FRAG_MAX_LEN];
+	uint8_t  data[0];
 } __packed;
 
 #define BT_HCI_LE_SET_PER_ADV_ENABLE_ENABLE     BIT(0)
@@ -1987,6 +2022,10 @@ struct bt_hci_rp_le_remove_iso_path {
 	uint8_t  status;
 	uint16_t handle;
 } __packed;
+
+#define BT_HCI_ISO_TEST_ZERO_SIZE_SDU     0
+#define BT_HCI_ISO_TEST_VARIABLE_SIZE_SDU 1
+#define BT_HCI_ISO_TEST_MAX_SIZE_SDU      2
 
 #define BT_HCI_OP_LE_ISO_TRANSMIT_TEST          BT_OP(BT_OGF_LE, 0x0070)
 struct bt_hci_cp_le_iso_transmit_test {

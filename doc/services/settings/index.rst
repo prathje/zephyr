@@ -68,7 +68,7 @@ backend.
     ``settings_load()``.
 
 **csi_save**
-    This gets called when a saving a single setting to persistent storage using
+    This gets called when saving a single setting to persistent storage using
     ``settings_save_one()``.
 
 **csi_save_start**
@@ -84,7 +84,7 @@ Zephyr Storage Backends
 
 Zephyr has three storage backends: a Flash Circular Buffer
 (:kconfig:option:`CONFIG_SETTINGS_FCB`), a file in the filesystem
-(:kconfig:option:`CONFIG_SETTINGS_FS`), or non-volatile storage
+(:kconfig:option:`CONFIG_SETTINGS_FILE`), or non-volatile storage
 (:kconfig:option:`CONFIG_SETTINGS_NVS`).
 
 You can declare multiple sources for settings; settings from
@@ -110,8 +110,8 @@ partition with label "storage" by default. A different partition can be
 selected by setting the ``zephyr,settings-partition`` property of the
 chosen node in the devicetree.
 
-The file path used by the file system backend to store settings
-is selected via the option ``CONFIG_SETTINGS_FS_FILE``.
+The file path used by the file backend to store settings is selected via the
+option ``CONFIG_SETTINGS_FILE_PATH``.
 
 Loading data from persisted storage
 ***********************************
@@ -122,7 +122,7 @@ After all data is loaded, the ``h_commit`` handler is issued,
 signalling the application that the settings were successfully
 retrieved.
 
-Technically FCB and filesystem backends may store some history of the entities.
+Technically FCB and file backends may store some history of the entities.
 This means that the newest data entity is stored after any
 older existing data entities.
 Starting with Zephyr 2.1, the back-end must filter out all old entities and
@@ -138,7 +138,7 @@ settings data to the storage medium. A call to ``settings_save()`` uses an
 A key need to be covered by a ``h_export`` only if it is supposed to be stored
 by ``settings_save()`` call.
 
-For both FCB and filesystem back-end only storage requests with data which
+For both FCB and file back-end only storage requests with data which
 changes most actual key's value are stored, therefore there is no need to check
 whether a value changed by the application. Such a storage mechanism implies
 that storage can contain multiple value assignments for a key , while only the
@@ -146,7 +146,7 @@ last is the current value for the key.
 
 Garbage collection
 ==================
-When storage becomes full (FCB) or consumes too much space (file system),
+When storage becomes full (FCB) or consumes too much space (file),
 the backend removes non-recent key-value pairs records and unnecessary
 key-delete records.
 
@@ -199,7 +199,7 @@ export functionality, for example, writing to the shell console).
     }
 
     static int foo_settings_export(int (*storage_func)(const char *name,
-                                                       void *value,
+                                                       const void *value,
                                                        size_t val_len))
     {
         return storage_func("foo/bar", &foo_val, sizeof(foo_val));
@@ -225,10 +225,10 @@ up from where it was before restart.
 
 .. code-block:: c
 
-    #include <zephyr.h>
-    #include <sys/reboot.h>
-    #include <settings/settings.h>
-    #include <sys/printk.h>
+    #include <zephyr/kernel.h>
+    #include <zephyr/sys/reboot.h>
+    #include <zephyr/settings/settings.h>
+    #include <zephyr/sys/printk.h>
     #include <inttypes.h>
 
     #define DEFAULT_FOO_VAL_VALUE 0
@@ -274,7 +274,7 @@ up from where it was before restart.
 
         printk("foo: %d\n", foo_val);
 
-        k_sleep(1000);
+        k_msleep(1000);
         sys_reboot(SYS_REBOOT_COLD);
     }
 

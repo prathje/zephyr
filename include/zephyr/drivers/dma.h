@@ -13,8 +13,8 @@
 #ifndef ZEPHYR_INCLUDE_DRIVERS_DMA_H_
 #define ZEPHYR_INCLUDE_DRIVERS_DMA_H_
 
-#include <kernel.h>
-#include <device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,6 +64,13 @@ enum dma_addr_adj {
 enum dma_channel_filter {
 	DMA_CHANNEL_NORMAL, /* normal DMA channel */
 	DMA_CHANNEL_PERIODIC, /* can be triggered by periodic sources */
+};
+
+/* DMA attributes */
+enum dma_attribute_type {
+	DMA_ATTR_BUFFER_ADDRESS_ALIGNMENT,
+	DMA_ATTR_BUFFER_SIZE_ALIGNMENT,
+	DMA_ATTR_COPY_ALIGNMENT,
 };
 
 /**
@@ -147,34 +154,34 @@ typedef void (*dma_callback_t)(const struct device *dev, void *user_data,
  * @struct dma_config
  * @brief DMA configuration structure.
  *
- * @param dma_slot             [ 0 : 6 ]   - which peripheral and direction
+ * @param dma_slot             [ 0 : 7 ]   - which peripheral and direction
  *                                        (HW specific)
- * @param channel_direction    [ 7 : 9 ]   - 000-memory to memory,
+ * @param channel_direction    [ 8 : 10 ]  - 000-memory to memory,
  *                                        001-memory to peripheral,
  *                                        010-peripheral to memory,
  *                                        011-peripheral to peripheral,
  *                                        100-host to memory
  *                                        101-memory to host
  *                                        ...
- * @param complete_callback_en [ 10 ]       - 0-callback invoked at completion only
+ * @param complete_callback_en [ 11 ]       - 0-callback invoked at completion only
  *                                        1-callback invoked at completion of
  *                                          each block
- * @param error_callback_en    [ 11 ]      - 0-error callback enabled
+ * @param error_callback_en    [ 12 ]      - 0-error callback enabled
  *                                        1-error callback disabled
- * @param source_handshake     [ 12 ]      - 0-HW, 1-SW
- * @param dest_handshake       [ 13 ]      - 0-HW, 1-SW
- * @param channel_priority     [ 14 : 17 ] - DMA channel priority
- * @param source_chaining_en   [ 18 ]      - enable/disable source block chaining
+ * @param source_handshake     [ 13 ]      - 0-HW, 1-SW
+ * @param dest_handshake       [ 14 ]      - 0-HW, 1-SW
+ * @param channel_priority     [ 15 : 18 ] - DMA channel priority
+ * @param source_chaining_en   [ 19 ]      - enable/disable source block chaining
  *                                        0-disable, 1-enable
- * @param dest_chaining_en     [ 19 ]      - enable/disable destination block
+ * @param dest_chaining_en     [ 20 ]      - enable/disable destination block
  *                                        chaining.
  *                                        0-disable, 1-enable
- * @param linked_channel       [ 20 : 26 ] - after channel count exhaust will
+ * @param linked_channel       [ 21 : 27 ] - after channel count exhaust will
  *                                        initiate a channel service request
  *                                        at this channel
- * @param cyclic               [ 27 ]      - enable/disable cyclic buffer
+ * @param cyclic               [ 28 ]      - enable/disable cyclic buffer
  *                                        0-disable, 1-enable
- * @param reserved             [ 28 : 31 ]
+ * @param reserved             [ 29 : 31 ]
  * @param source_data_size    [ 0 : 15 ]   - width of source data (in bytes)
  * @param dest_data_size      [ 16 : 31 ]  - width of dest data (in bytes)
  * @param source_burst_length [ 0 : 15 ]   - number of source data units
@@ -185,7 +192,7 @@ typedef void (*dma_callback_t)(const struct device *dev, void *user_data,
  * @param dma_callback see dma_callback_t for details
  */
 struct dma_config {
-	uint32_t  dma_slot :             7;
+	uint32_t  dma_slot :             8;
 	uint32_t  channel_direction :    3;
 	uint32_t  complete_callback_en : 1;
 	uint32_t  error_callback_en :    1;
@@ -196,7 +203,7 @@ struct dma_config {
 	uint32_t  dest_chaining_en :     1;
 	uint32_t  linked_channel   :     7;
 	uint32_t  cyclic :				 1;
-	uint32_t  reserved :             4;
+	uint32_t  reserved :             3;
 	uint32_t  source_data_size :    16;
 	uint32_t  dest_data_size :      16;
 	uint32_t  source_burst_length : 16;
@@ -226,6 +233,7 @@ struct dma_status {
 	uint32_t free;
 	uint32_t write_position;
 	uint32_t read_position;
+	uint64_t total_copied;
 };
 
 /**
@@ -275,6 +283,8 @@ typedef int (*dma_api_resume)(const struct device *dev, uint32_t channel);
 typedef int (*dma_api_get_status)(const struct device *dev, uint32_t channel,
 				  struct dma_status *status);
 
+typedef int (*dma_api_get_attribute)(const struct device *dev, uint32_t type, uint32_t *value);
+
 /**
  * @typedef dma_chan_filter
  * @brief channel filter function call
@@ -299,6 +309,7 @@ __subsystem struct dma_driver_api {
 	dma_api_suspend suspend;
 	dma_api_resume resume;
 	dma_api_get_status get_status;
+	dma_api_get_attribute get_attribute;
 	dma_api_chan_filter chan_filter;
 };
 /**
@@ -479,7 +490,7 @@ static inline int z_impl_dma_request_channel(const struct device *dev,
 	const struct dma_driver_api *api =
 		(const struct dma_driver_api *)dev->api;
 	/* dma_context shall be the first one in dev data */
-	struct dma_context *dma_ctx = dev->data;
+	struct dma_context *dma_ctx = (struct dma_context *)dev->data;
 
 	if (dma_ctx->magic != DMA_MAGIC) {
 		return channel;
@@ -487,12 +498,12 @@ static inline int z_impl_dma_request_channel(const struct device *dev,
 
 	for (i = 0; i < dma_ctx->dma_channels; i++) {
 		if (!atomic_test_and_set_bit(dma_ctx->atomic, i)) {
-			channel = i;
 			if (api->chan_filter &&
-			    !api->chan_filter(dev, channel, filter_param)) {
-				atomic_clear_bit(dma_ctx->atomic, channel);
+			    !api->chan_filter(dev, i, filter_param)) {
+				atomic_clear_bit(dma_ctx->atomic, i);
 				continue;
 			}
+			channel = i;
 			break;
 		}
 	}
@@ -515,13 +526,13 @@ __syscall void dma_release_channel(const struct device *dev,
 static inline void z_impl_dma_release_channel(const struct device *dev,
 					      uint32_t channel)
 {
-	struct dma_context *dma_ctx = dev->data;
+	struct dma_context *dma_ctx = (struct dma_context *)dev->data;
 
 	if (dma_ctx->magic != DMA_MAGIC) {
 		return;
 	}
 
-	if (channel < dma_ctx->dma_channels) {
+	if ((int)channel < dma_ctx->dma_channels) {
 		atomic_clear_bit(dma_ctx->atomic, channel);
 	}
 
@@ -577,6 +588,32 @@ static inline int dma_get_status(const struct device *dev, uint32_t channel,
 
 	if (api->get_status) {
 		return api->get_status(dev, channel, stat);
+	}
+
+	return -ENOSYS;
+}
+
+/**
+ * @brief get attribute of a dma controller
+ *
+ * This function allows to get a device specific static or runtime attribute like required address
+ * and size alignment of a buffer.
+ * Implementations must check the validity of the type passed in and
+ * return -EINVAL if it is invalid or -ENOSYS if not supported.
+ *
+ * @param dev     Pointer to the device structure for the driver instance.
+ * @param type    Numeric identification of the attribute
+ * @param value   A non-NULL pointer to the variable where the read value is to be placed
+ *
+ * @retval non-negative if successful.
+ * @retval Negative errno code if failure.
+ */
+static inline int dma_get_attribute(const struct device *dev, uint32_t type, uint32_t *value)
+{
+	const struct dma_driver_api *api = (const struct dma_driver_api *)dev->api;
+
+	if (api->get_attribute) {
+		return api->get_attribute(dev, type, value);
 	}
 
 	return -ENOSYS;
@@ -639,6 +676,36 @@ static inline uint32_t dma_burst_index(uint32_t burst)
 	/* Convert to bit pattern for writing to a register */
 	return find_msb_set(burst);
 }
+
+/**
+ * Get the device tree property describing the buffer address alignment
+ *
+ * Useful when statically defining or allocating buffers for DMA usage where
+ * memory alignment often matters.
+ *
+ * @param node Node identifier, e.g. DT_NODELABEL(dma_0)
+ * @return alignment Memory byte alignment required for DMA buffers
+ */
+#define DMA_BUF_ADDR_ALIGNMENT(node) DT_PROP(node, dma_buf_addr_alignment)
+
+/**
+ * Get the device tree property describing the buffer size alignment
+ *
+ * Useful when statically defining or allocating buffers for DMA usage where
+ * memory alignment often matters.
+ *
+ * @param node Node identifier, e.g. DT_NODELABEL(dma_0)
+ * @return alignment Memory byte alignment required for DMA buffers
+ */
+#define DMA_BUF_SIZE_ALIGNMENT(node) DT_PROP(node, dma_buf_size_alignment)
+
+/**
+ * Get the device tree property describing the minimal chunk of data possible to be copied
+ *
+ * @param node Node identifier, e.g. DT_NODELABEL(dma_0)
+ * @return minimal Minimal chunk of data possible to be copied
+ */
+#define DMA_COPY_ALIGNMENT(node) DT_PROP(node, dma_copy_alignment)
 
 /**
  * @}

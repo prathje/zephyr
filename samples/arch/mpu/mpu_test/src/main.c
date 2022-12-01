@@ -6,11 +6,11 @@
  */
 #include <stdlib.h>
 
-#include <zephyr.h>
-#include <device.h>
-#include <devicetree.h>
-#include <drivers/flash.h>
-#include <shell/shell.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/shell/shell.h>
 
 #define PR_SHELL(shell, fmt, ...)				\
 	shell_fprintf(shell, SHELL_NORMAL, fmt, ##__VA_ARGS__)
@@ -31,7 +31,7 @@
 
 #if defined(CONFIG_SOC_FLASH_MCUX) || defined(CONFIG_SOC_FLASH_LPC) || \
 	defined(CONFIG_SOC_FLASH_STM32)
-static const struct device *flash_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_flash_controller));
+static const struct device *const flash_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_flash_controller));
 #endif
 
 static int cmd_read(const struct shell *shell, size_t argc, char *argv[])

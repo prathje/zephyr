@@ -18,9 +18,12 @@
 		zephyr,uart-mcumgr = &uart0;
 		zephyr,bt-mon-uart = &uart0;
 		zephyr,bt-c2h-uart = &uart0;
+		zephyr,bt-hci-rpmsg-ipc = &ipc0;
+		nordic,802154-spinel-ipc = &ipc0;
 		zephyr,sram = &sram1;
 		zephyr,flash = &flash1;
 		zephyr,code-partition = &slot0_partition;
+		zephyr,ieee802154 = &ieee802154;
 	};
 
 	leds {
@@ -103,6 +106,9 @@
 		sw2 = &button2;
 		sw3 = &button3;
 		bootloader-led0 = &led0;
+		mcuboot-button0 = &button0;
+		mcuboot-led0 = &led0;
+		watchdog0 = &wdt0;
 	};
 };
 
@@ -187,6 +193,10 @@ arduino_spi: &spi0 {
 			reg = <0x0003a000 0x6000>;
 		};
 	};
+};
+
+&ieee802154 {
+	status = "okay";
 };
 
 /* Include shared RAM configuration file */

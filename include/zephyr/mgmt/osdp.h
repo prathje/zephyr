@@ -7,10 +7,10 @@
 #ifndef _OSDP_H_
 #define _OSDP_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdint.h>
 
-#include <sys/slist.h>
+#include <zephyr/sys/slist.h>
 
 #ifdef __cplusplus
 extern "C" {

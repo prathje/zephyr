@@ -21,14 +21,14 @@
 #define ZEPHYR_KERNEL_INCLUDE_KERNEL_STRUCTS_H_
 
 #if !defined(_ASMLANGUAGE)
-#include <sys/atomic.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/types.h>
-#include <kernel/sched_priq.h>
-#include <sys/dlist.h>
-#include <sys/util.h>
-#include <sys/sys_heap.h>
-#include <arch/structs.h>
-#include <kernel/stats.h>
+#include <zephyr/kernel/sched_priq.h>
+#include <zephyr/sys/dlist.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/sys/sys_heap.h>
+#include <zephyr/arch/structs.h>
+#include <zephyr/kernel/stats.h>
 #endif
 
 #ifdef __cplusplus
@@ -126,6 +126,10 @@ struct _cpu {
 
 	uint8_t id;
 
+#if defined(CONFIG_FPU_SHARING)
+	void *fp_ctx;
+#endif
+
 #ifdef CONFIG_SMP
 	/* True when _current is allowed to context switch */
 	uint8_t swap_ok;
@@ -152,7 +156,7 @@ struct _cpu {
 typedef struct _cpu _cpu_t;
 
 struct z_kernel {
-	struct _cpu cpus[CONFIG_MP_NUM_CPUS];
+	struct _cpu cpus[CONFIG_MP_MAX_NUM_CPUS];
 
 #ifdef CONFIG_PM
 	int32_t idle; /* Number of ticks for kernel idling */
@@ -182,6 +186,11 @@ struct z_kernel {
 
 #if defined(CONFIG_THREAD_MONITOR)
 	struct k_thread *threads; /* singly linked list of ALL threads */
+#endif
+
+#if defined(CONFIG_SMP) && defined(CONFIG_SCHED_IPI_SUPPORTED)
+	/* Need to signal an IPI at the next scheduling point */
+	bool pending_ipi;
 #endif
 };
 

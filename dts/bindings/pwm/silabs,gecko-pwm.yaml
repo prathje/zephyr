@@ -12,7 +12,6 @@ properties:
 
     prescaler:
       type: int
-      required: false
       default: 1
       description: prescaling factor from the HFPERCLK clock
       enum:
@@ -29,8 +28,9 @@ properties:
         - 1024
 
     "#pwm-cells":
-      const: 2
+      const: 3
 
 pwm-cells:
   - channel
+  - period
   - flags

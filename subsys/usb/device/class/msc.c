@@ -33,18 +33,18 @@
  * Driver for USB Mass Storage device class driver
  */
 
-#include <init.h>
+#include <zephyr/init.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/byteorder.h>
-#include <sys/__assert.h>
-#include <storage/disk_access.h>
-#include <usb/class/usb_msc.h>
-#include <usb/usb_device.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/__assert.h>
+#include <zephyr/storage/disk_access.h>
+#include <zephyr/usb/class/usb_msc.h>
+#include <zephyr/usb/usb_device.h>
 #include <usb_descriptor.h>
 
 #define LOG_LEVEL CONFIG_USB_MASS_STORAGE_LOG_LEVEL
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(usb_msc);
 
 /* max USB packet size */
@@ -772,6 +772,11 @@ static void thread_memory_write_done(void)
 	length -= size;
 	csw.DataResidue -= size;
 
+	if (!length) {
+		if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_CTRL_SYNC, NULL)) {
+			LOG_ERR("!! Disk cache sync error !!");
+		}
+	}
 
 	if ((!length) || (stage != MSC_PROCESS_CBW)) {
 		csw.Status = (stage == MSC_ERROR) ? CSW_FAILED : CSW_PASSED;

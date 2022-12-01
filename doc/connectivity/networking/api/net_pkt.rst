@@ -17,7 +17,7 @@ metadata for the core to hold important information. Such an object is
 called net_pkt in this document.
 
 The data structure and the whole API around it are defined in
-:zephyr_file:`include/net/net_pkt.h`.
+:zephyr_file:`include/zephyr/net/net_pkt.h`.
 
 Architectural notes
 ===================
@@ -318,7 +318,7 @@ chosen).
     NET_PKT_DATA_ACCESS_CONTIGUOUS_DEFINE(ipv4_access, struct net_ipv4_hdr);
     struct net_ipv4_hdr *ipv4_hdr;
 
-    ipv4_hdr = (struct net_ipv4_hdr *)net_pkt_get_data(pkt, &ipv4_acess);
+    ipv4_hdr = (struct net_ipv4_hdr *)net_pkt_get_data(pkt, &ipv4_access);
 
 It would be the same for struct net_ipv4_hdr. For a UDP header it
 is likely not to be in a contiguous area in IPv6

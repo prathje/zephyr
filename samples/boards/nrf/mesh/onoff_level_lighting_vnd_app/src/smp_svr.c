@@ -5,25 +5,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <sys/__assert.h>
-#include <bluetooth/conn.h>
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/gatt.h>
-#include <mgmt/mcumgr/buf.h>
-#include <mgmt/mcumgr/smp_bt.h>
-#include <stats/stats.h>
+#include <zephyr/sys/__assert.h>
+#include <zephyr/stats/stats.h>
 #include <stdlib.h>
 #include <string.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
+#ifdef CONFIG_MCUMGR_CMD_FS_MGMT
+#include <zephyr/mgmt/mcumgr/grp/fs_mgmt/fs_mgmt.h>
+#endif
 #ifdef CONFIG_MCUMGR_CMD_IMG_MGMT
-#include "img_mgmt/img_mgmt.h"
+#include <zephyr/mgmt/mcumgr/grp/img_mgmt/img_mgmt.h>
 #endif
 #ifdef CONFIG_MCUMGR_CMD_OS_MGMT
-#include "os_mgmt/os_mgmt.h"
+#include <zephyr/mgmt/mcumgr/grp/os_mgmt/os_mgmt.h>
 #endif
 #ifdef CONFIG_MCUMGR_CMD_STAT_MGMT
-#include "stat_mgmt/stat_mgmt.h"
+#include <zephyr/mgmt/mcumgr/grp/stat_mgmt/stat_mgmt.h>
 #endif
 
 /* Define an example stats group; approximates seconds since boot. */

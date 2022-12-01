@@ -4,30 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kernel.h>
-#include <spinlock.h>
+#include <zephyr/kernel.h>
+#include <zephyr/spinlock.h>
 #include <ksched.h>
-#include <timeout_q.h>
-#include <syscall_handler.h>
-#include <drivers/timer/system_timer.h>
-#include <sys_clock.h>
+#include <zephyr/timeout_q.h>
+#include <zephyr/syscall_handler.h>
+#include <zephyr/drivers/timer/system_timer.h>
+#include <zephyr/sys_clock.h>
 
 static uint64_t curr_tick;
 
 static sys_dlist_t timeout_list = SYS_DLIST_STATIC_INIT(&timeout_list);
 
 static struct k_spinlock timeout_lock;
-
-/* On multiprocessor setups, it's possible to have multiple
- * sys_clock_announce() calls arrive in parallel (the latest to exit
- * the driver will generally be announcing zero ticks).  But we want
- * the list of timeouts to be executed serially, so as not to confuse
- * application code.  This lock wraps the announce loop, external to
- * the nested timeout_lock.
- */
-#ifdef CONFIG_SMP
-static struct k_spinlock ann_lock;
-#endif
 
 #define MAX_WAIT (IS_ENABLED(CONFIG_SYSTEM_CLOCK_SLOPPY_IDLE) \
 		  ? K_TICKS_FOREVER : INT_MAX)
@@ -253,11 +242,19 @@ void sys_clock_announce(int32_t ticks)
 	z_time_slice(ticks);
 #endif
 
-#ifdef CONFIG_SMP
-	k_spinlock_key_t ann_key = k_spin_lock(&ann_lock);
-#endif
-
 	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
+
+	/* We release the lock around the callbacks below, so on SMP
+	 * systems someone might be already running the loop.  Don't
+	 * race (which will cause paralllel execution of "sequential"
+	 * timeouts and confuse apps), just increment the tick count
+	 * and return.
+	 */
+	if (IS_ENABLED(CONFIG_SMP) && (announce_remaining != 0)) {
+		announce_remaining += ticks;
+		k_spin_unlock(&timeout_lock, key);
+		return;
+	}
 
 	announce_remaining = ticks;
 
@@ -266,13 +263,13 @@ void sys_clock_announce(int32_t ticks)
 		int dt = t->dticks;
 
 		curr_tick += dt;
-		announce_remaining -= dt;
 		t->dticks = 0;
 		remove_timeout(t);
 
 		k_spin_unlock(&timeout_lock, key);
 		t->fn(t);
 		key = k_spin_lock(&timeout_lock);
+		announce_remaining -= dt;
 	}
 
 	if (first() != NULL) {
@@ -285,10 +282,6 @@ void sys_clock_announce(int32_t ticks)
 	sys_clock_set_timeout(next_timeout(), false);
 
 	k_spin_unlock(&timeout_lock, key);
-
-#ifdef CONFIG_SMP
-	k_spin_unlock(&ann_lock, ann_key);
-#endif
 }
 
 int64_t sys_clock_tick_get(void)
@@ -296,7 +289,7 @@ int64_t sys_clock_tick_get(void)
 	uint64_t t = 0U;
 
 	LOCKED(&timeout_lock) {
-		t = curr_tick + sys_clock_elapsed();
+		t = curr_tick + elapsed();
 	}
 	return t;
 }

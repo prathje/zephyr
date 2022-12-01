@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <init.h>
+#include <zephyr/init.h>
+#include <zephyr/devicetree.h>
 #include "fe310_prci.h"
 
 #define CORECLK_HZ (DT_PROP(DT_NODELABEL(coreclk), clock_frequency))
